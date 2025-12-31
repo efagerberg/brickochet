@@ -1,12 +1,12 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
+use bevy_inspector_egui::{bevy_egui, quick};
 use bevy_rapier3d::prelude::*;
 
 mod components;
 mod resources;
 mod systems;
 
-use components::{ball::*, paddle::*};
+use components::{ball, paddle};
 use resources::playfield::Playfield;
 
 fn main() {
@@ -14,8 +14,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
-        .add_plugins(EguiPlugin::default())
-        .add_plugins(WorldInspectorPlugin::default())
+        .add_plugins(bevy_egui::EguiPlugin::default())
+        .add_plugins(quick::WorldInspectorPlugin::default())
         .insert_resource(Playfield {
             width: 10.0,
             height: 10.0,
@@ -46,9 +46,9 @@ fn spawn_paddle(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn((
-        Paddle,
+        paddle::Paddle,
         Name::new("Paddle"),
-        PaddleSpeed(8.0),
+        paddle::PaddleSpeed(8.0),
         Transform::default(),
         GlobalTransform::default(),
         RigidBody::KinematicPositionBased,
@@ -65,9 +65,9 @@ fn spawn_ball(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn((
-        Ball,
+        ball::Ball,
         Name::new("Ball"),
-        Velocity(Vec3::new(2.0, 2.0, 0.0)),
+        ball::Velocity(Vec3::new(2.0, 2.0, 0.0)),
         Transform::default(),
         GlobalTransform::default(),
         RigidBody::KinematicPositionBased,
