@@ -17,12 +17,12 @@ fn main() {
                 }),
                 ..default()
             }))
-        .add_plugins((diagnostic::FrameTimeDiagnosticsPlugin::default(), diagnostic::LogDiagnosticsPlugin::default()))
+        // .add_plugins((diagnostic::FrameTimeDiagnosticsPlugin::default(), diagnostic::LogDiagnosticsPlugin::default()))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
         .add_systems(Startup, systems::scene::setup)
-        .add_systems(Update, systems::paddle::paddle_mouse_control)
+        .add_systems(Update, (systems::input::grab_mouse, systems::paddle::paddle_mouse_control))
         .run();
 }

@@ -1,30 +1,25 @@
 use bevy::prelude::*;
-use bevy::window;
-
+use bevy::input::mouse;
 use crate::components::paddle;
 
 pub fn paddle_mouse_control(
-    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut mouse_motion_message_reader: MessageReader<mouse::MouseMotion>,
     mut paddle_query: Query<&mut Transform, With<paddle::Paddle>>,
-    windows: Query<&Window, With<window::PrimaryWindow>>,
 ) {
-    let window = windows.single().unwrap();
-    let (camera, camera_transform) = camera_query.single().unwrap();
+    let mut delta = Vec2::ZERO;
 
-    let Some(cursor_pos) = window.cursor_position() else {
+    for ev in mouse_motion_message_reader.read() {
+        delta += ev.delta;
+    }
+
+    if delta == Vec2::ZERO {
         return;
-    };
+    }
 
-    let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) else {
-        return;
-    };
-
-    // Paddle plane (Z = 5.0)
-    let t = (5.0 - ray.origin.z) / ray.direction.z;
-    let world_pos = ray.origin + ray.direction * t;
+    let sensitivity = 0.025;
 
     for mut transform in &mut paddle_query {
-        transform.translation.x = world_pos.x;
-        transform.translation.y = world_pos.y;
+        transform.translation.x += delta.x * sensitivity;
+        transform.translation.y -= delta.y * sensitivity; // invert Y if needed
     }
 }
