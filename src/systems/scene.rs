@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::{CursorOptions}};
 use bevy_rapier3d::prelude::*;
 
 use crate::components::{ball, paddle};
@@ -7,11 +7,14 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut cursor_options: Single<&mut CursorOptions>
 ) {
     setup_camera(&mut commands);
     setup_lighting(&mut commands);
     spawn_paddle(&mut commands, &mut meshes, &mut materials);
     spawn_ball(&mut commands, &mut meshes, &mut materials);
+
+    cursor_options.visible = false;
 }
 
 fn setup_camera(commands: &mut Commands) {
@@ -30,7 +33,6 @@ fn spawn_paddle(
     commands.spawn((
         paddle::Paddle,
         Name::new("Paddle"),
-        paddle::PaddleSpeed(8.0),
         Transform::from_xyz(0.0, 0.0, 5.0),
         GlobalTransform::default(),
         RigidBody::KinematicPositionBased,
