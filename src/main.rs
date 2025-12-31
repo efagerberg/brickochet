@@ -7,7 +7,6 @@ mod resources;
 mod systems;
 
 use components::{ball, paddle};
-use resources::playfield::Playfield;
 
 fn main() {
     App::new()
@@ -16,14 +15,9 @@ fn main() {
         .add_plugins(RapierDebugRenderPlugin::default())
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
-        .insert_resource(Playfield {
-            width: 10.0,
-            height: 10.0,
-            depth: 10.0,
-        })
         .add_systems(
             Startup,
-            (setup_camera, setup_playfield, spawn_paddle, spawn_ball),
+            (setup_camera, setup_lighting, spawn_paddle, spawn_ball),
         )
         .run();
 }
@@ -32,12 +26,8 @@ fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         Name::new("Camera"),
-        Transform::from_xyz(0.0, 0.0, -1.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 0.0, 30.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
-}
-
-fn setup_playfield(_commands: Commands) {
-    // Example: spawn 4 walls (left, right, top, bottom)
 }
 
 fn spawn_paddle(
@@ -74,5 +64,15 @@ fn spawn_ball(
         Collider::ball(4.0),
         Mesh3d(meshes.add(Sphere::new(4.0))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
+    ));
+}
+
+fn setup_lighting(mut commands: Commands) {
+    commands.spawn((
+        PointLight {
+            shadows_enabled: true,
+            ..default()
+        },
+        Transform::from_xyz(4.0, 8.0, 4.0),
     ));
 }
