@@ -7,7 +7,6 @@ mod resources;
 mod systems;
 
 fn main() {
-    println!("Hello, world!");
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
