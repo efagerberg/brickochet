@@ -32,6 +32,7 @@ fn spawn_paddle(
         paddle::PaddleSize {
             half_width: 4.0,
             half_height: 2.0,
+            contact_depth: 1.0,
         },
         Transform::from_xyz(0.0, 0.0, 25.0),
         GlobalTransform::default(),
@@ -48,10 +49,10 @@ fn spawn_ball(
     commands.spawn((
         ball::Ball,
         Name::new("Ball"),
-        ball::Velocity(Vec3::new(0.0, 0.0, 5.0)),
+        ball::Velocity(Vec3::new(0.0, 0.0, 15.0)),
         Transform::default(),
         GlobalTransform::default(),
-        Mesh3d(meshes.add(Sphere::new(1.0))),
+        Mesh3d(meshes.add(Sphere::new(ball::BALL_RADIUS))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
     ));
 }
