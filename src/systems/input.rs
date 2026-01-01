@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::CursorOptions, window::CursorGrabMode};
+use bevy::{prelude::*, window::CursorGrabMode, window::CursorOptions};
 
 pub fn grab_mouse(
     mut cursor_options: Single<&mut CursorOptions>,

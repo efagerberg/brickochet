@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
 
 use crate::components::{ball, paddle};
 
@@ -18,7 +17,7 @@ fn setup_camera(commands: &mut Commands) {
     commands.spawn((
         Camera3d::default(),
         Name::new("Camera"),
-        Transform::from_xyz(0.0, 0.0, 30.0).looking_at(Vec3::ZERO, Vec3::Y),
+        Transform::from_xyz(0.0, 0.0, 40.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
 
@@ -30,11 +29,12 @@ fn spawn_paddle(
     commands.spawn((
         paddle::Paddle,
         Name::new("Paddle"),
-        Transform::from_xyz(0.0, 0.0, 5.0),
+        paddle::PaddleSize {
+            half_width: 4.0,
+            half_height: 2.0,
+        },
+        Transform::from_xyz(0.0, 0.0, 25.0),
         GlobalTransform::default(),
-        RigidBody::KinematicPositionBased,
-        Collider::cuboid(4.0, 2.0, 0.25),
-        Restitution::coefficient(1.0),
         Mesh3d(meshes.add(Cuboid::new(8.0, 4.0, 0.5))),
         MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
     ));
@@ -48,12 +48,10 @@ fn spawn_ball(
     commands.spawn((
         ball::Ball,
         Name::new("Ball"),
-        ball::Velocity(Vec3::new(0.0, 0.0, 0.0)),
+        ball::Velocity(Vec3::new(0.0, 0.0, 5.0)),
         Transform::default(),
         GlobalTransform::default(),
-        RigidBody::KinematicPositionBased,
-        Collider::ball(2.0),
-        Mesh3d(meshes.add(Sphere::new(2.0))),
+        Mesh3d(meshes.add(Sphere::new(1.0))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
     ));
 }
