@@ -15,10 +15,10 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins((
-            diagnostic::FrameTimeDiagnosticsPlugin::default(),
-            diagnostic::LogDiagnosticsPlugin::default(),
-        ))
+        // .add_plugins((
+        //     diagnostic::FrameTimeDiagnosticsPlugin::default(),
+        //     diagnostic::LogDiagnosticsPlugin::default(),
+        // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
         .insert_resource(resources::playfield::Playfield {
@@ -41,7 +41,7 @@ fn main() {
                     systems::paddle::record_paddle_motion,
                     systems::paddle::paddle_ball_collision,
                     systems::ball::reflect_ball,
-                    systems::paddle::apply_curve_from_motion_record
+                    systems::paddle::apply_curve_from_motion_record,
                 )
                     .chain(),
             ),

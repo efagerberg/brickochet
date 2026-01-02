@@ -30,14 +30,14 @@ fn spawn_paddle(
         paddle::Paddle,
         Name::new("Paddle"),
         paddle::PaddleSize {
-            half_width: 4.0,
-            half_height: 2.0,
+            half_width: 2.0,
+            half_height: 1.0,
             contact_depth: 1.0,
         },
         paddle::PaddleMotionRecord::default(),
         Transform::from_xyz(0.0, 0.0, 25.0),
         GlobalTransform::default(),
-        Mesh3d(meshes.add(Cuboid::new(8.0, 4.0, 0.5))),
+        Mesh3d(meshes.add(Cuboid::new(4.0, 2.0, 0.5))),
         MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
     ));
 }

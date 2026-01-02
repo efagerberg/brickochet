@@ -23,6 +23,8 @@ pub fn paddle_mouse_control(
     paddle_transform.translation.y -= new_velocity.y; // invert Y if needed
 }
 
+const Z_SPEED_INCREASE: f32 = 1.0;
+
 pub fn paddle_ball_collision(
     ball: Single<(&mut Transform, &mut physics::Velocity), With<ball::Ball>>,
     paddle: Single<
@@ -39,7 +41,6 @@ pub fn paddle_ball_collision(
     let (paddle_transform, paddle_size, mut paddle_motion_record) = paddle.into_inner();
 
     let p = paddle_transform.translation;
-
     let b = ball_transform.translation;
 
     // 1. Must be moving toward the paddle (+Z example)
@@ -66,12 +67,8 @@ pub fn paddle_ball_collision(
     }
 
     // --- Collision confirmed ---
-
-    // Clamp ball to paddle surface
-    ball_transform.translation.z = z_min;
-
     // Reflect Z only
-    ball_velocity.0.z = -ball_velocity.0.z;
+    ball_velocity.0.z = -ball_velocity.0.z - Z_SPEED_INCREASE;
 
     // Start motion record for curve computation
     paddle_motion_record.start_pos = Vec2::new(
@@ -97,29 +94,33 @@ pub fn record_paddle_motion(
     }
 }
 
+const REGULAR_CURVE_SCALE: f32 = 0.02;
+const SUPER_CURVE_SCALE: f32 = 0.05;
+const SUPER_CURVE_DELTA_THRESHOLD: f32 = 10.0;
+const REGULAR_CURVE_DELTA_THRESHOLD: f32 = 5.0;
+
 pub fn apply_curve_from_motion_record(
     mut ball_curve: Single<&mut physics::Curve, With<ball::Ball>>,
-    paddle_motion_record: Single<&paddle::PaddleMotionRecord, With<paddle::Paddle>>,
+    mut paddle_motion_record: Single<&mut paddle::PaddleMotionRecord, With<paddle::Paddle>>,
 ) {
     if !paddle_motion_record.pending && paddle_motion_record.delta != Vec2::ZERO {
-        const REGULAR: f32 = 0.002;
-        const SUPER: f32 = 0.0005;
-
+        // Compute curve based on motion delta over 30ms
         ball_curve.0.x = match paddle_motion_record.delta.x {
-            d if d <= -10.0 => SUPER,
-            d if d <= -5.0  => REGULAR,
-            d if d >= 10.0  => -SUPER,
-            d if d >= 5.0   => -REGULAR,
+            d if d <= -SUPER_CURVE_DELTA_THRESHOLD => SUPER_CURVE_SCALE,
+            d if d <= -REGULAR_CURVE_DELTA_THRESHOLD => REGULAR_CURVE_SCALE,
+            d if d >= SUPER_CURVE_DELTA_THRESHOLD => -SUPER_CURVE_SCALE,
+            d if d >= REGULAR_CURVE_DELTA_THRESHOLD => -REGULAR_CURVE_SCALE,
             _ => 0.0,
         };
 
         ball_curve.0.y = match paddle_motion_record.delta.y {
-            d if d <= -10.0 => -SUPER,
-            d if d <= -5.0  => -REGULAR,
-            d if d >= 10.0  => SUPER,
-            d if d >= 5.0   => REGULAR,
+            d if d <= -SUPER_CURVE_DELTA_THRESHOLD => SUPER_CURVE_SCALE,
+            d if d <= -REGULAR_CURVE_DELTA_THRESHOLD => REGULAR_CURVE_SCALE,
+            d if d >= SUPER_CURVE_DELTA_THRESHOLD => -SUPER_CURVE_SCALE,
+            d if d >= REGULAR_CURVE_DELTA_THRESHOLD => -REGULAR_CURVE_SCALE,
             _ => 0.0,
         };
+        paddle_motion_record.delta = Vec2::ZERO;
+
     }
 }
-
