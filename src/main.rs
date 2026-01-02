@@ -22,9 +22,9 @@ fn main() {
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
         .insert_resource(resources::playfield::Playfield {
-            half_width: 20.0,
-            half_height: 15.0,
-            half_depth: 30.0,
+            half_width: 10.0,
+            half_height: 5.0,
+            half_depth: 10.0,
         })
         .add_systems(Startup, systems::scene::setup)
         .add_systems(
@@ -32,9 +32,12 @@ fn main() {
             (
                 systems::input::grab_mouse,
                 systems::paddle::paddle_mouse_control,
-                systems::ball::reflect_ball,
-                systems::ball::move_ball,
-                systems::paddle::paddle_ball_collision,
+                (systems::physics::apply_curve, systems::physics::apply_velocity).chain(),
+                (
+                    systems::ball::reflect_ball,
+                    systems::paddle::paddle_ball_collision,
+                )
+                    .chain(),
             ),
         )
         .run();

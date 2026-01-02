@@ -9,3 +9,6 @@ pub struct PaddleSize {
     pub half_height: f32,
     pub contact_depth: f32,
 }
+
+#[derive(Component, Default)]
+pub struct PaddleDelta(pub Vec2);

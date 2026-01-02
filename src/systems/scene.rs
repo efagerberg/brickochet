@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::components::{ball, paddle};
+use crate::components::{ball, paddle, physics};
 
 pub fn setup(
     mut commands: Commands,
@@ -34,6 +34,7 @@ fn spawn_paddle(
             half_height: 2.0,
             contact_depth: 1.0,
         },
+        paddle::PaddleDelta::default(),
         Transform::from_xyz(0.0, 0.0, 25.0),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Cuboid::new(8.0, 4.0, 0.5))),
@@ -49,7 +50,8 @@ fn spawn_ball(
     commands.spawn((
         ball::Ball,
         Name::new("Ball"),
-        ball::Velocity(Vec3::new(0.0, 0.0, 15.0)),
+        physics::Velocity(Vec3::new(0.0, 0.0, 15.0)),
+        physics::Curve::default(),
         Transform::default(),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Sphere::new(ball::BALL_RADIUS))),
