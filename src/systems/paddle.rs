@@ -25,10 +25,18 @@ pub fn paddle_mouse_control(
 
 pub fn paddle_ball_collision(
     ball: Single<(&mut Transform, &mut physics::Velocity), With<ball::Ball>>,
-    paddle: Single<(&Transform, &paddle::PaddleSize), (With<paddle::Paddle>, Without<ball::Ball>)>,
+    paddle: Single<
+        (
+            &Transform,
+            &paddle::PaddleSize,
+            &mut paddle::PaddleMotionRecord,
+        ),
+        (With<paddle::Paddle>, Without<ball::Ball>),
+    >,
+    time: Res<Time>,
 ) {
     let (mut ball_transform, mut ball_velocity) = ball.into_inner();
-    let (paddle_transform, paddle_size) = paddle.into_inner();
+    let (paddle_transform, paddle_size, mut paddle_motion_record) = paddle.into_inner();
 
     let p = paddle_transform.translation;
 
@@ -64,4 +72,54 @@ pub fn paddle_ball_collision(
 
     // Reflect Z only
     ball_velocity.0.z = -ball_velocity.0.z;
+
+    // Start motion record for curve computation
+    paddle_motion_record.start_pos = Vec2::new(
+        paddle_transform.translation.x,
+        paddle_transform.translation.y,
+    );
+    paddle_motion_record.start_time = time.elapsed_secs();
+    paddle_motion_record.pending = true;
 }
+
+pub fn record_paddle_motion(
+    time: Res<Time>,
+    paddle: Single<(&Transform, &mut paddle::PaddleMotionRecord), With<paddle::Paddle>>,
+) {
+    let (transform, mut record) = paddle.into_inner();
+    if record.pending {
+        // Compute delta if 30ms have passed
+        if time.elapsed_secs() - record.start_time >= 0.3 {
+            let current_pos = Vec2::new(transform.translation.x, transform.translation.y);
+            record.delta = current_pos - record.start_pos;
+            record.pending = false; // Done computing, ready for curve
+        }
+    }
+}
+
+pub fn apply_curve_from_motion_record(
+    mut ball_curve: Single<&mut physics::Curve, With<ball::Ball>>,
+    paddle_motion_record: Single<&paddle::PaddleMotionRecord, With<paddle::Paddle>>,
+) {
+    if !paddle_motion_record.pending && paddle_motion_record.delta != Vec2::ZERO {
+        const REGULAR: f32 = 0.002;
+        const SUPER: f32 = 0.0005;
+
+        ball_curve.0.x = match paddle_motion_record.delta.x {
+            d if d <= -10.0 => SUPER,
+            d if d <= -5.0  => REGULAR,
+            d if d >= 10.0  => -SUPER,
+            d if d >= 5.0   => -REGULAR,
+            _ => 0.0,
+        };
+
+        ball_curve.0.y = match paddle_motion_record.delta.y {
+            d if d <= -10.0 => -SUPER,
+            d if d <= -5.0  => -REGULAR,
+            d if d >= 10.0  => SUPER,
+            d if d >= 5.0   => REGULAR,
+            _ => 0.0,
+        };
+    }
+}
+

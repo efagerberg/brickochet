@@ -38,8 +38,10 @@ fn main() {
                 )
                     .chain(),
                 (
-                    systems::ball::reflect_ball,
+                    systems::paddle::record_paddle_motion,
                     systems::paddle::paddle_ball_collision,
+                    systems::ball::reflect_ball,
+                    systems::paddle::apply_curve_from_motion_record
                 )
                     .chain(),
             ),
