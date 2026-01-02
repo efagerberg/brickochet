@@ -32,7 +32,11 @@ fn main() {
             (
                 systems::input::grab_mouse,
                 systems::paddle::paddle_mouse_control,
-                (systems::physics::apply_curve, systems::physics::apply_velocity).chain(),
+                (
+                    systems::physics::apply_curve,
+                    systems::physics::apply_velocity,
+                )
+                    .chain(),
                 (
                     systems::ball::reflect_ball,
                     systems::paddle::paddle_ball_collision,

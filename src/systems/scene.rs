@@ -5,7 +5,7 @@ use crate::components::{ball, paddle, physics};
 pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     setup_camera(&mut commands);
     setup_lighting(&mut commands);
@@ -34,7 +34,6 @@ fn spawn_paddle(
             half_height: 2.0,
             contact_depth: 1.0,
         },
-        paddle::PaddleDelta::default(),
         Transform::from_xyz(0.0, 0.0, 25.0),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Cuboid::new(8.0, 4.0, 0.5))),
