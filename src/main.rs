@@ -21,11 +21,6 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
-        .insert_resource(resources::playfield::Playfield {
-            half_width: 10.0,
-            half_height: 5.0,
-            half_depth: 10.0,
-        })
         .add_systems(Startup, systems::scene::setup)
         .add_systems(
             Update,

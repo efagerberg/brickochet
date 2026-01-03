@@ -26,7 +26,7 @@ pub fn paddle_mouse_control(
 const Z_SPEED_INCREASE: f32 = 1.0;
 
 pub fn paddle_ball_collision(
-    ball: Single<(&mut Transform, &mut physics::Velocity), With<ball::Ball>>,
+    ball: Single<(&Transform, &mut physics::Velocity), With<ball::Ball>>,
     paddle: Single<
         (
             &Transform,
@@ -37,7 +37,7 @@ pub fn paddle_ball_collision(
     >,
     time: Res<Time>,
 ) {
-    let (mut ball_transform, mut ball_velocity) = ball.into_inner();
+    let (ball_transform, mut ball_velocity) = ball.into_inner();
     let (paddle_transform, paddle_size, mut paddle_motion_record) = paddle.into_inner();
 
     let p = paddle_transform.translation;
@@ -49,18 +49,18 @@ pub fn paddle_ball_collision(
     }
 
     // 2. X overlap
-    if (b.x - p.x).abs() > paddle_size.half_width + ball::BALL_RADIUS {
+    if (b.x - p.x).abs() > paddle_size.half_width + ball::RADIUS {
         return;
     }
 
     // 3. Y overlap
-    if (b.y - p.y).abs() > paddle_size.half_height + ball::BALL_RADIUS {
+    if (b.y - p.y).abs() > paddle_size.half_height + ball::RADIUS {
         return;
     }
 
     // 4. Z overlap band
-    let z_min = p.z - paddle_size.contact_depth - ball::BALL_RADIUS;
-    let z_max = p.z + paddle_size.contact_depth + ball::BALL_RADIUS;
+    let z_min = p.z - paddle_size.contact_depth - ball::RADIUS;
+    let z_max = p.z + paddle_size.contact_depth + ball::RADIUS;
 
     if b.z < z_min || b.z > z_max {
         return;
@@ -121,6 +121,5 @@ pub fn apply_curve_from_motion_record(
             _ => 0.0,
         };
         paddle_motion_record.delta = Vec2::ZERO;
-
     }
 }

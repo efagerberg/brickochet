@@ -3,7 +3,7 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Paddle;
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 pub struct PaddleSize {
     pub half_width: f32,
     pub half_height: f32,
