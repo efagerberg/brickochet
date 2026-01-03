@@ -98,6 +98,7 @@ fn spawn_playfield(
 
     for i in 0..num_lines {
         let z = -half_depth + i as f32 * line_spacing;
+        let line_material = materials.add(line_default_color);
 
         // Floor line (X direction)
         children.push(
@@ -110,7 +111,7 @@ fn spawn_playfield(
                         line_thickness,
                         line_thickness,
                     ))),
-                    MeshMaterial3d(materials.add(line_default_color)),
+                    MeshMaterial3d(line_material.clone()),
                     Transform::from_xyz(0.0, -half_height, z),
                 ))
                 .id(),
@@ -127,7 +128,7 @@ fn spawn_playfield(
                         line_thickness,
                         line_thickness,
                     ))),
-                    MeshMaterial3d(materials.add(line_default_color)),
+                    MeshMaterial3d(line_material.clone()),
                     Transform::from_xyz(0.0, half_height, z),
                 ))
                 .id(),
@@ -144,7 +145,7 @@ fn spawn_playfield(
                         line_thickness,
                         line_thickness,
                     ))),
-                    MeshMaterial3d(materials.add(line_default_color)),
+                    MeshMaterial3d(line_material.clone()),
                     Transform {
                         translation: Vec3::new(-half_width, 0.0, z),
                         rotation: Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
@@ -165,7 +166,7 @@ fn spawn_playfield(
                         line_thickness,
                         line_thickness,
                     ))),
-                    MeshMaterial3d(materials.add(line_default_color)),
+                    MeshMaterial3d(line_material.clone()),
                     Transform {
                         translation: Vec3::new(half_width, 0.0, z),
                         rotation: Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),

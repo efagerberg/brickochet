@@ -14,15 +14,19 @@ pub fn highlight_depth_lines(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let ball_z = ball.translation.z;
-    let max_distance = ball::RADIUS * 4.0;
+    let max_distance = ball::RADIUS * 3.0;
+    let base_color = &playfield.wall_line_default_color;
+    let highlight_color = &playfield.wall_line_highlight_color;
 
     for (line_transform, mat_handle) in lines {
         if let Some(mat) = materials.get_mut(&*mat_handle) {
             let distance = (line_transform.translation.z - ball_z).abs();
-            let t = (max_distance - distance).clamp(0.0, 1.0); // 0 if far, 1 if very close
-            let base_color = &playfield.wall_line_default_color;
-            let highlight_color = &playfield.wall_line_highlight_color;
-            mat.base_color = Color::mix(base_color, highlight_color, t);
+            let t = (max_distance - distance).clamp(0.0, 1.0); // 0 if far, 1 if very closet);
+            let new_color = Color::mix(base_color, highlight_color, t);
+
+            if mat.base_color != new_color {
+                mat.base_color = new_color;
+            }
         }
     }
 }
