@@ -1,9 +1,15 @@
+use crate::{
+    components::{self, ball},
+    resources,
+};
 use bevy::prelude::*;
-use crate::{components::{self, ball}, resources};
 
 pub fn highlight_depth_lines(
     ball: Single<&Transform, With<components::ball::Ball>>,
-    lines: Query<(&Transform, &mut MeshMaterial3d<StandardMaterial>), With<components::playfield::DepthLine>>,
+    lines: Query<
+        (&Transform, &mut MeshMaterial3d<StandardMaterial>),
+        With<components::playfield::DepthLine>,
+    >,
     playfield: Res<resources::playfield::Playfield>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {

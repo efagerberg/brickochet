@@ -255,7 +255,7 @@ fn spawn_playfield(
         half_height,
         half_depth,
         wall_line_default_color: line_default_color,
-        wall_line_highlight_color: line_highlight_color
+        wall_line_highlight_color: line_highlight_color,
     };
     commands.insert_resource(playfield.clone());
     playfield

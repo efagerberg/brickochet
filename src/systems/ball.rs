@@ -34,5 +34,9 @@ pub fn reflect_ball(
     if ball_transform.translation.z - ball::RADIUS < -playfield.half_depth {
         ball_transform.translation.z = -playfield.half_depth + ball::RADIUS;
         ball_velocity.0.z *= -1.0;
+        // For now clear curve on ball wall. In Curveball the ball spin is set when
+        // the enemy AI hits the ball, this tries to mimic that feel. Probably when
+        // bricks are added, they will do the same.
+        curve.0 = Vec2::ZERO;
     }
 }
