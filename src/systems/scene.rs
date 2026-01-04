@@ -82,10 +82,10 @@ fn spawn_playfield(
     let half_height = 5.0;
     let half_depth = 20.0;
 
-    let wall_material = materials.add(Color::srgb(0.2, 0.2, 0.25));
+    let wall_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
 
     // Number of depth lines
-    let num_lines = 9;
+    let num_lines = 10;
     let line_thickness = 0.25;
     let line_spacing = (half_depth * 2.0) / (num_lines as f32);
 
@@ -93,8 +93,8 @@ fn spawn_playfield(
     let mut children = vec![];
 
     // Base line material
-    let line_default_color = Color::linear_rgb(0.3, 0.3, 0.35);
-    let line_highlight_color = Color::linear_rgb(0.6, 0.6, 0.65);
+    let line_default_color = Color::linear_rgb(0.0, 0.7, 0.0);
+    let line_highlight_color = Color::linear_rgb(0.0, 1.0, 0.4);
 
     for i in 0..num_lines {
         let z = -half_depth + i as f32 * line_spacing;
