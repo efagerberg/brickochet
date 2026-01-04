@@ -74,7 +74,7 @@ fn spawn_ball(
     commands.spawn((
         components::ball::Ball,
         Name::new("Ball"),
-        components::physics::Velocity(Vec3::new(0.0, 0.0, 15.0)),
+        components::physics::Velocity(Vec3::new(0.0, 0.0, 25.0)),
         components::physics::Curve::default(),
         Transform::default(),
         GlobalTransform::default(),
