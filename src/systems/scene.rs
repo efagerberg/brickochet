@@ -1,4 +1,4 @@
-use bevy::{asset, mesh, prelude::*};
+use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
 use crate::{components, resources};
 
@@ -18,6 +18,16 @@ fn setup_camera(commands: &mut Commands, playfield: &resources::playfield::Playf
     commands.spawn((
         Camera3d::default(),
         Name::new("Camera"),
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
+            ..default()
+        },
+        core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
+        post_process::bloom::Bloom {
+            intensity: 0.05,
+            ..default()
+        },
+        core_pipeline::tonemapping::DebandDither::Enabled,
         Projection::Perspective(PerspectiveProjection {
             fov: std::f32::consts::FRAC_PI_3, // ~60°
             near: 0.1,
@@ -84,21 +94,21 @@ fn spawn_playfield(
 
     let wall_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
 
-    // Number of depth lines
     let num_lines = 10;
     let line_thickness = 0.25;
     let line_spacing = (half_depth * 2.0) / (num_lines as f32);
 
-    // Collect all children entities
     let mut children = vec![];
 
-    // Base line material
-    let line_default_color = Color::linear_rgb(0.0, 0.7, 0.0);
-    let line_highlight_color = Color::linear_rgb(0.0, 1.0, 0.4);
+    let line_default_color = LinearRgba::rgb(0.0, 0.15, 0.0);
+    let line_highlight_color = LinearRgba::rgb(0.0, 0.4, 0.2);
 
     for i in 0..num_lines {
         let z = -half_depth + i as f32 * line_spacing;
-        let line_material = materials.add(line_default_color);
+        let line_material = materials.add(StandardMaterial {
+            emissive: line_default_color,
+            ..default()
+        });
         let mesh = meshes.add(build_depth_lines_mesh(
             half_width,
             half_height,
@@ -129,7 +139,6 @@ fn spawn_playfield(
         0.1,
     );
 
-    // Spawn parent playfield entity
     let parent_entity = commands
         .spawn((
             Name::new("Playfield"),
@@ -141,7 +150,6 @@ fn spawn_playfield(
         commands.entity(parent_entity).add_child(child);
     }
 
-    // Insert resource
     let playfield = resources::playfield::Playfield {
         half_width,
         half_height,

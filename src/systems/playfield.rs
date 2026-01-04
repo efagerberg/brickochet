@@ -22,10 +22,9 @@ pub fn highlight_depth_lines(
         if let Some(mat) = materials.get_mut(&*mat_handle) {
             let distance = (line_transform.translation.z - ball_z).abs();
             let t = (max_distance - distance).clamp(0.0, 1.0); // 0 if far, 1 if very closet);
-            let new_color = Color::mix(base_color, highlight_color, t);
-
-            if mat.base_color != new_color {
-                mat.base_color = new_color;
+            let new_color = LinearRgba::mix(base_color, highlight_color, t);
+            if mat.emissive != new_color {
+                mat.emissive = new_color;
             }
         }
     }
