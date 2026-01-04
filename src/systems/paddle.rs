@@ -1,10 +1,12 @@
 use crate::components::{ball, paddle, physics};
+use crate::resources::playfield;
 use bevy::input::mouse;
 use bevy::prelude::*;
 
 pub fn paddle_mouse_control(
     mut mouse_motion_message_reader: MessageReader<mouse::MouseMotion>,
-    mut paddle_transform: Single<&mut Transform, With<paddle::Paddle>>,
+    paddle_single: Single<(&mut Transform, &paddle::PaddleSize), With<paddle::Paddle>>,
+    playfield: Res<playfield::Playfield>,
 ) {
     let mut delta = Vec2::ZERO;
 
@@ -16,11 +18,17 @@ pub fn paddle_mouse_control(
         return;
     }
 
+    let (mut paddle_transform, paddle_size) = paddle_single.into_inner();
+
     let sensitivity = 0.025;
     let new_velocity = delta * sensitivity;
+    let x_abs_limit = playfield.half_width - paddle_size.half_width;
+    let y_abs_limit = playfield.half_height - paddle_size.half_height;
 
-    paddle_transform.translation.x += new_velocity.x;
-    paddle_transform.translation.y -= new_velocity.y; // invert Y if needed
+    paddle_transform.translation.x =
+        (paddle_transform.translation.x + new_velocity.x).clamp(-x_abs_limit, x_abs_limit);
+    paddle_transform.translation.y =
+        (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
 }
 
 const Z_SPEED_INCREASE: f32 = 1.0;

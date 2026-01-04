@@ -14,7 +14,9 @@ pub fn highlight_depth_lines(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let ball_z = ball.translation.z;
-    let max_distance = ball::RADIUS * 3.0;
+    // 2 ball diameters distance away, increase for smoothing animation, decrease
+    // to make animation more choppy
+    let max_distance = 2.0 * ball::RADIUS * 2.0;
     let base_color = &playfield.wall_line_default_color;
     let highlight_color = &playfield.wall_line_highlight_color;
 
