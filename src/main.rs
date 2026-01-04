@@ -37,9 +37,10 @@ fn main() {
                     systems::paddle::paddle_ball_collision,
                     systems::ball::reflect_ball,
                     systems::paddle::apply_curve_from_motion_record,
-                    systems::playfield::highlight_depth_lines,
                 )
                     .chain(),
+                systems::playfield::highlight_depth_lines,
+                systems::rendering::update_material_color,
             ),
         )
         .run();

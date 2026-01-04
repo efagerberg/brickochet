@@ -122,6 +122,7 @@ fn spawn_playfield(
                     Name::new(format!("Depth Line {}", i)),
                     Mesh3d(mesh),
                     MeshMaterial3d(line_material.clone()),
+                    components::rendering::MaterialColorsUpdate::default(),
                     Transform::from_xyz(0.0, 0.0, z),
                 ))
                 .id(),
