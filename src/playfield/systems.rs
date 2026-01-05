@@ -1,18 +1,18 @@
-use crate::{components, resources};
+use crate::{ball, playfield, rendering};
 use bevy::prelude::*;
 
 pub fn highlight_depth_lines(
-    ball: Single<&Transform, With<components::ball::Ball>>,
+    ball: Single<&Transform, With<ball::components::Ball>>,
     lines: Query<
-        (&Transform, &mut components::rendering::MaterialColorsUpdate),
-        With<components::playfield::DepthLines>,
+        (&Transform, &mut rendering::components::MaterialColorsUpdate),
+        With<playfield::components::DepthLines>,
     >,
-    playfield: Res<resources::playfield::Playfield>,
+    playfield: Res<playfield::resources::Playfield>,
 ) {
     let ball_z = ball.translation.z;
     // 2 ball diameters distance away, increase for smoothing animation, decrease
     // to make animation more choppy
-    let max_distance = 2.0 * components::ball::RADIUS * 2.0;
+    let max_distance = 2.0 * ball::components::RADIUS * 2.0;
     let base_color = &playfield.wall_line_default_color;
     let highlight_color = &playfield.wall_line_highlight_color;
 

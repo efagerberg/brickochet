@@ -1,10 +1,14 @@
 use bevy::prelude::*;
-use bevy::{diagnostic, window};
+use bevy::window;
 use bevy_inspector_egui::{bevy_egui, quick};
 
-mod components;
-mod resources;
-mod systems;
+mod ball;
+mod input;
+mod paddle;
+mod physics;
+mod playfield;
+mod rendering;
+mod scene;
 
 fn main() {
     App::new()
@@ -21,26 +25,26 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
-        .add_systems(Startup, systems::scene::setup)
+        .add_systems(Startup, scene::setup)
         .add_systems(
             Update,
             (
-                systems::input::grab_mouse,
-                systems::paddle::paddle_mouse_control,
+                input::systems::grab_mouse,
+                paddle::systems::paddle_mouse_control,
                 (
-                    systems::physics::apply_curve,
-                    systems::physics::apply_velocity,
+                    physics::systems::apply_curve,
+                    physics::systems::apply_velocity,
                 )
                     .chain(),
                 (
-                    systems::paddle::record_paddle_motion,
-                    systems::paddle::paddle_ball_collision,
-                    systems::ball::reflect_ball,
-                    systems::paddle::apply_curve_from_motion_record,
+                    paddle::systems::record_paddle_motion,
+                    paddle::systems::paddle_ball_collision,
+                    ball::systems::reflect_ball,
+                    paddle::systems::apply_curve_from_motion_record,
                 )
                     .chain(),
-                systems::playfield::highlight_depth_lines,
-                systems::rendering::update_material_color,
+                playfield::systems::highlight_depth_lines,
+                rendering::systems::update_material_color,
             ),
         )
         .run();

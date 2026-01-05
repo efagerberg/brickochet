@@ -1,6 +1,6 @@
 use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
-use crate::{components, resources};
+use crate::{ball, paddle, physics, playfield, rendering};
 
 pub fn setup(
     mut commands: Commands,
@@ -14,7 +14,7 @@ pub fn setup(
     spawn_ball(&mut commands, &mut meshes, &mut materials);
 }
 
-fn setup_camera(commands: &mut Commands, playfield: &resources::playfield::Playfield) {
+fn setup_camera(commands: &mut Commands, playfield: &playfield::resources::Playfield) {
     commands.spawn((
         Camera3d::default(),
         Name::new("Camera"),
@@ -43,18 +43,18 @@ fn spawn_paddle(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    playfield: &resources::playfield::Playfield,
+    playfield: &playfield::resources::Playfield,
 ) {
-    let paddle_size = components::paddle::PaddleSize {
+    let paddle_size = paddle::components::PaddleSize {
         half_width: 2.0,
         half_height: 1.0,
         contact_depth: 0.1,
     };
     commands.spawn((
-        components::paddle::Paddle,
+        paddle::components::Paddle,
         Name::new("Paddle"),
         paddle_size,
-        components::paddle::PaddleMotionRecord::default(),
+        paddle::components::PaddleMotionRecord::default(),
         Transform::from_xyz(0.0, 0.0, playfield.half_depth - 4.0),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Cuboid::new(
@@ -72,13 +72,13 @@ fn spawn_ball(
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn((
-        components::ball::Ball,
+        ball::components::Ball,
         Name::new("Ball"),
-        components::physics::Velocity(Vec3::new(0.0, 0.0, 25.0)),
-        components::physics::Curve::default(),
+        physics::components::Velocity(ball::components::DEFAULT_VELOCITY),
+        physics::components::Curve::default(),
         Transform::default(),
         GlobalTransform::default(),
-        Mesh3d(meshes.add(Sphere::new(components::ball::RADIUS))),
+        Mesh3d(meshes.add(Sphere::new(ball::components::RADIUS))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
     ));
 }
@@ -87,7 +87,7 @@ fn spawn_playfield(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-) -> resources::playfield::Playfield {
+) -> playfield::resources::Playfield {
     let half_width = 10.0;
     let half_height = 5.0;
     let half_depth = 20.0;
@@ -118,11 +118,11 @@ fn spawn_playfield(
         children.push(
             commands
                 .spawn((
-                    components::playfield::DepthLines,
+                    playfield::components::DepthLines,
                     Name::new(format!("Depth Line {}", i)),
                     Mesh3d(mesh),
                     MeshMaterial3d(line_material.clone()),
-                    components::rendering::MaterialColorsUpdate::default(),
+                    rendering::components::MaterialColorsUpdate::default(),
                     Transform::from_xyz(0.0, 0.0, z),
                 ))
                 .id(),
@@ -151,7 +151,7 @@ fn spawn_playfield(
         commands.entity(parent_entity).add_child(child);
     }
 
-    let playfield = resources::playfield::Playfield {
+    let playfield = playfield::resources::Playfield {
         half_width,
         half_height,
         half_depth,

@@ -7,6 +7,9 @@ edition = "2024"
 bevy = "0.17.3"
 bevy-inspector-egui = "0.35.0"
 
+[dev-dependencies]
+test-case = "3.3.1"
+
 # No optimization so we can use debugger
 [profile.dev]
 opt-level = 0
