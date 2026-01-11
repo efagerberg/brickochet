@@ -14,6 +14,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
+                // https://github.com/bevyengine/bevy/issues/3317
                 present_mode: window::PresentMode::Immediate, // 🚫 VSync OFF
                 ..default()
             }),
@@ -30,21 +31,29 @@ fn main() {
             Update,
             (
                 input::systems::grab_mouse,
-                paddle::systems::paddle_mouse_control,
+                (
+                    paddle::systems::paddle_mouse_control,
+                    paddle::systems::record_paddle_motion,
+                )
+                    .chain(),
+                playfield::systems::highlight_depth_lines,
+                rendering::systems::update_material_color,
+            ),
+        )
+        .add_systems(
+            FixedUpdate,
+            (
                 (
                     physics::systems::apply_curve,
                     physics::systems::apply_velocity,
                 )
                     .chain(),
                 (
-                    paddle::systems::record_paddle_motion,
                     paddle::systems::paddle_ball_collision,
                     ball::systems::reflect_ball,
                     paddle::systems::apply_curve_from_motion_record,
                 )
                     .chain(),
-                playfield::systems::highlight_depth_lines,
-                rendering::systems::update_material_color,
             ),
         )
         .run();

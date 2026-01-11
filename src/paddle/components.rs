@@ -17,3 +17,24 @@ pub struct PaddleMotionRecord {
     pub delta: Vec2,     // Computed delta over window
     pub pending: bool,   // Is a curve calculation pending?
 }
+
+#[derive(Component, Default)]
+pub struct PaddleImpactModifiers {
+    pub normal_curve_scale: f32,
+    pub super_curve_scale: f32,
+    pub normal_curve_position_delta_threshold: f32,
+    pub super_curve_position_delta_threshold: f32,
+    pub contact_z_speed_increase: f32,
+}
+
+impl PaddleImpactModifiers {
+    pub fn starting() -> Self {
+        return PaddleImpactModifiers {
+            normal_curve_scale: 6.0,
+            super_curve_scale: 18.0,
+            normal_curve_position_delta_threshold: 9.0,
+            super_curve_position_delta_threshold: 4.0,
+            contact_z_speed_increase: 1.0,
+        };
+    }
+}

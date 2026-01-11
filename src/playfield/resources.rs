@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Resource, Clone)]
+#[derive(Resource, Clone, Default)]
 pub struct Playfield {
     pub half_width: f32,
     pub half_height: f32,

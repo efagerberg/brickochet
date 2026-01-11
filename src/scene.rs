@@ -55,6 +55,7 @@ fn spawn_paddle(
         Name::new("Paddle"),
         paddle_size,
         paddle::components::PaddleMotionRecord::default(),
+        paddle::components::PaddleImpactModifiers::starting(),
         Transform::from_xyz(0.0, 0.0, playfield.half_depth - 4.0),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Cuboid::new(
@@ -71,14 +72,15 @@ fn spawn_ball(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
+    let ball_modifiers = ball::components::BallModifiers::starting();
     commands.spawn((
-        ball::components::Ball,
+        ball_modifiers.clone(),
         Name::new("Ball"),
-        physics::components::Velocity(ball::components::DEFAULT_VELOCITY),
         physics::components::Curve::default(),
+        physics::components::Velocity(ball_modifiers.base_velocity),
         Transform::default(),
         GlobalTransform::default(),
-        Mesh3d(meshes.add(Sphere::new(ball::components::RADIUS))),
+        Mesh3d(meshes.add(Sphere::new(ball_modifiers.radius))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
     ));
 }

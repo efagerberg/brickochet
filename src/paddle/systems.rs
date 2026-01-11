@@ -1,9 +1,8 @@
 use crate::{ball, paddle, physics, playfield};
-use bevy::input::mouse;
 use bevy::prelude::*;
 
 pub fn paddle_mouse_control(
-    mut mouse_motion_message_reader: MessageReader<mouse::MouseMotion>,
+    mut mouse_motion_message_reader: MessageReader<bevy::input::mouse::MouseMotion>,
     paddle_single: Single<
         (&mut Transform, &paddle::components::PaddleSize),
         With<paddle::components::Paddle>,
@@ -33,25 +32,29 @@ pub fn paddle_mouse_control(
         (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
 }
 
-const Z_SPEED_INCREASE: f32 = 1.0;
-
 pub fn paddle_ball_collision(
-    ball: Single<(&Transform, &mut physics::components::Velocity), With<ball::components::Ball>>,
+    ball_query: Single<(
+        &ball::components::BallModifiers,
+        &Transform,
+        &mut physics::components::Velocity,
+    )>,
     paddle: Single<
         (
             &Transform,
             &paddle::components::PaddleSize,
+            &paddle::components::PaddleImpactModifiers,
             &mut paddle::components::PaddleMotionRecord,
         ),
         (
             With<paddle::components::Paddle>,
-            Without<ball::components::Ball>,
+            Without<ball::components::BallModifiers>,
         ),
     >,
     time: Res<Time>,
 ) {
-    let (ball_transform, mut ball_velocity) = ball.into_inner();
-    let (paddle_transform, paddle_size, mut paddle_motion_record) = paddle.into_inner();
+    let (ball_modifiers, ball_transform, mut ball_velocity) = ball_query.into_inner();
+    let (paddle_transform, paddle_size, paddle_modifiers, mut paddle_motion_record) =
+        paddle.into_inner();
 
     let p = paddle_transform.translation;
     let b = ball_transform.translation;
@@ -62,18 +65,18 @@ pub fn paddle_ball_collision(
     }
 
     // 2. X overlap
-    if (b.x - p.x).abs() > paddle_size.half_width + ball::components::RADIUS {
+    if (b.x - p.x).abs() > paddle_size.half_width + ball_modifiers.radius {
         return;
     }
 
     // 3. Y overlap
-    if (b.y - p.y).abs() > paddle_size.half_height + ball::components::RADIUS {
+    if (b.y - p.y).abs() > paddle_size.half_height + ball_modifiers.radius {
         return;
     }
 
     // 4. Z overlap band
-    let z_min = p.z - paddle_size.contact_depth - ball::components::RADIUS;
-    let z_max = p.z + paddle_size.contact_depth + ball::components::RADIUS;
+    let z_min = p.z - paddle_size.contact_depth - ball_modifiers.radius;
+    let z_max = p.z + paddle_size.contact_depth + ball_modifiers.radius;
 
     if b.z < z_min || b.z > z_max {
         return;
@@ -81,7 +84,7 @@ pub fn paddle_ball_collision(
 
     // --- Collision confirmed ---
     // Reflect Z only
-    ball_velocity.0.z = -ball_velocity.0.z - Z_SPEED_INCREASE;
+    ball_velocity.0.z = -ball_velocity.0.z - paddle_modifiers.contact_z_speed_increase;
 
     // Start motion record for curve computation
     paddle_motion_record.start_pos = Vec2::new(
@@ -110,35 +113,50 @@ pub fn record_paddle_motion(
     }
 }
 
-const REGULAR_CURVE_SCALE: f32 = 0.02;
-const SUPER_CURVE_SCALE: f32 = 0.05;
-const SUPER_CURVE_DELTA_THRESHOLD: f32 = 10.0;
-const REGULAR_CURVE_DELTA_THRESHOLD: f32 = 5.0;
-
 pub fn apply_curve_from_motion_record(
-    mut ball_curve: Single<&mut physics::components::Curve, With<ball::components::Ball>>,
-    mut paddle_motion_record: Single<
-        &mut paddle::components::PaddleMotionRecord,
+    mut ball_curve: Single<&mut physics::components::Curve, With<ball::components::BallModifiers>>,
+    paddle: Single<
+        (
+            &mut paddle::components::PaddleMotionRecord,
+            &paddle::components::PaddleImpactModifiers,
+        ),
         With<paddle::components::Paddle>,
     >,
 ) {
-    if !paddle_motion_record.pending && paddle_motion_record.delta != Vec2::ZERO {
+    let (mut motion_record, modifiers) = paddle.into_inner();
+    if !motion_record.pending && motion_record.delta != Vec2::ZERO {
         // Compute curve based on motion delta over 30ms
-        ball_curve.0.x = match paddle_motion_record.delta.x {
-            d if d <= -SUPER_CURVE_DELTA_THRESHOLD => SUPER_CURVE_SCALE,
-            d if d <= -REGULAR_CURVE_DELTA_THRESHOLD => REGULAR_CURVE_SCALE,
-            d if d >= SUPER_CURVE_DELTA_THRESHOLD => -SUPER_CURVE_SCALE,
-            d if d >= REGULAR_CURVE_DELTA_THRESHOLD => -REGULAR_CURVE_SCALE,
+        ball_curve.0.x = match motion_record.delta.x {
+            d if d <= -modifiers.super_curve_position_delta_threshold => {
+                modifiers.super_curve_scale
+            }
+            d if d <= -modifiers.normal_curve_position_delta_threshold => {
+                modifiers.normal_curve_scale
+            }
+            d if d >= modifiers.super_curve_position_delta_threshold => {
+                -modifiers.super_curve_scale
+            }
+            d if d >= modifiers.normal_curve_position_delta_threshold => {
+                -modifiers.normal_curve_scale
+            }
             _ => 0.0,
         };
 
-        ball_curve.0.y = match paddle_motion_record.delta.y {
-            d if d <= -SUPER_CURVE_DELTA_THRESHOLD => SUPER_CURVE_SCALE,
-            d if d <= -REGULAR_CURVE_DELTA_THRESHOLD => REGULAR_CURVE_SCALE,
-            d if d >= SUPER_CURVE_DELTA_THRESHOLD => -SUPER_CURVE_SCALE,
-            d if d >= REGULAR_CURVE_DELTA_THRESHOLD => -REGULAR_CURVE_SCALE,
+        ball_curve.0.y = match motion_record.delta.y {
+            d if d <= -modifiers.super_curve_position_delta_threshold => {
+                modifiers.super_curve_scale
+            }
+            d if d <= -modifiers.normal_curve_position_delta_threshold => {
+                modifiers.normal_curve_scale
+            }
+            d if d >= modifiers.super_curve_position_delta_threshold => {
+                -modifiers.super_curve_scale
+            }
+            d if d >= modifiers.normal_curve_position_delta_threshold => {
+                -modifiers.normal_curve_scale
+            }
             _ => 0.0,
         };
-        paddle_motion_record.delta = Vec2::ZERO;
+        motion_record.delta = Vec2::ZERO;
     }
 }

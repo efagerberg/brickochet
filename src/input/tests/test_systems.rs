@@ -41,9 +41,7 @@ struct GrabMouseCase {
 fn test_grab_mouse_alters_cursor_options_given_expected_input(case: GrabMouseCase) {
     let mut app = App::new();
     app.add_systems(Update, input::systems::grab_mouse);
-    let entity = app.world_mut().spawn(
-        case.cursor_options
-    ).id();
+    let entity = app.world_mut().spawn(case.cursor_options).id();
     let mut keyboard_input = ButtonInput::<KeyCode>::default();
     if let Some(press_key) = case.press_key {
         keyboard_input.press(press_key);
@@ -57,7 +55,10 @@ fn test_grab_mouse_alters_cursor_options_given_expected_input(case: GrabMouseCas
     app.insert_resource(mouse_input);
 
     app.update();
-    let updated_cursor_options = app.world().get::<bevy::window::CursorOptions>(entity).unwrap();
+    let updated_cursor_options = app
+        .world()
+        .get::<bevy::window::CursorOptions>(entity)
+        .unwrap();
 
     assert_eq!(updated_cursor_options.grab_mode, case.expected_grab_mode);
     assert_eq!(updated_cursor_options.visible, case.expected_visible);

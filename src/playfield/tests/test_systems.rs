@@ -62,7 +62,7 @@ fn setup(
     app.insert_resource(playfield_res.clone());
     let ball_transform = make_transform(ball_z);
     app.world_mut()
-        .spawn((ball::components::Ball, ball_transform));
+        .spawn((ball::components::BallModifiers::starting(), ball_transform));
     let lines_transform = make_transform(lines_z);
     let lines_entity = app
         .world_mut()
