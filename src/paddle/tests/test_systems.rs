@@ -10,8 +10,9 @@ const PADDLE_HALF: f32 = 1.0;
 fn base_app() -> App {
     let mut app = App::new();
     app.insert_resource(playfield::resources::Playfield {
-        half_width: PLAYFIELD_HALF,
-        half_height: PLAYFIELD_HALF,
+        aabb: physics::components::Aabb3d {
+            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.1)
+        },
         ..default()
     });
     app.add_message::<bevy::input::mouse::MouseMotion>();
@@ -76,10 +77,8 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         .world_mut()
         .spawn((
             paddle::components::Paddle,
-            paddle::components::PaddleSize {
-                half_width: PADDLE_HALF,
-                half_height: PADDLE_HALF,
-                contact_depth: 0.5,
+            physics::components::Aabb3d {
+                half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5,)
             },
             Transform {
                 translation: case.starting_position,
@@ -191,10 +190,8 @@ fn test_paddle_ball_collision(case: PaddleBallCollisionCase) {
 
     app.world_mut().spawn((
         paddle::components::Paddle,
-        paddle::components::PaddleSize {
-            half_width: PADDLE_HALF,
-            half_height: PADDLE_HALF,
-            contact_depth: 1.0,
+        physics::components::Aabb3d {
+            half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 1.0),
         },
         paddle::components::PaddleImpactModifiers {
             contact_z_speed_increase: 0.5,

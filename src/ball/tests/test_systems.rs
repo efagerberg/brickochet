@@ -4,9 +4,9 @@ use std::f32::EPSILON;
 use test_case::test_case;
 
 const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Playfield {
-    half_width: 1.0,
-    half_height: 2.0,
-    half_depth: 3.0,
+    aabb: physics::components::Aabb3d {
+        half_extents: Vec3::new(1.0, 2.0, 3.0)
+    },
     wall_line_default_color: LinearRgba::new(0.0, 0.0, 0.0, 1.0),
     wall_line_highlight_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
 };
@@ -24,27 +24,27 @@ struct ReflectCase {
 fn just_above_top_wall() -> Vec3 {
     Vec3::new(
         0.0,
-        PLAYFIELD_RES.half_height + ball::components::BallModifiers::starting().radius + 0.1,
+        PLAYFIELD_RES.aabb.half_extents.y + ball::components::BallModifiers::starting().radius + 0.1,
         0.0,
     )
 }
 fn just_below_bottom_wall() -> Vec3 {
     Vec3::new(
         0.0,
-        -PLAYFIELD_RES.half_height - ball::components::BallModifiers::starting().radius - 0.1,
+        -PLAYFIELD_RES.aabb.half_extents.y - ball::components::BallModifiers::starting().radius - 0.1,
         0.0,
     )
 }
 fn just_left_of_left_wall() -> Vec3 {
     Vec3::new(
-        -PLAYFIELD_RES.half_width - ball::components::BallModifiers::starting().radius - 0.1,
+        -PLAYFIELD_RES.aabb.half_extents.x - ball::components::BallModifiers::starting().radius - 0.1,
         0.0,
         0.0,
     )
 }
 fn just_right_of_right_wall() -> Vec3 {
     Vec3::new(
-        PLAYFIELD_RES.half_width + ball::components::BallModifiers::starting().radius + 0.1,
+        PLAYFIELD_RES.aabb.half_extents.x + ball::components::BallModifiers::starting().radius + 0.1,
         0.0,
         0.0,
     )
@@ -53,14 +53,14 @@ fn just_past_far_wall() -> Vec3 {
     Vec3::new(
         0.0,
         0.0,
-        -PLAYFIELD_RES.half_depth - ball::components::BallModifiers::starting().radius - 0.1,
+        -PLAYFIELD_RES.aabb.half_extents.z - ball::components::BallModifiers::starting().radius - 0.1,
     )
 }
 fn just_past_near_wall() -> Vec3 {
     Vec3::new(
         0.0,
         0.0,
-        PLAYFIELD_RES.half_depth + ball::components::BallModifiers::starting().radius + 0.1,
+        PLAYFIELD_RES.aabb.half_extents.z + ball::components::BallModifiers::starting().radius + 0.1,
     )
 }
 
@@ -69,7 +69,7 @@ fn just_past_near_wall() -> Vec3 {
         pos: just_above_top_wall(),
         vel: Vec3::Y,
         curve: Vec2::X,
-        expected_pos: Vec3::new(0.0, PLAYFIELD_RES.half_height - ball::components::BallModifiers::starting().radius, 0.0),
+        expected_pos: Vec3::new(0.0, PLAYFIELD_RES.aabb.half_extents.y - ball::components::BallModifiers::starting().radius, 0.0),
         expected_vel: -Vec3::Y,
         expected_curve: Vec2::X
     };
@@ -80,7 +80,7 @@ fn just_past_near_wall() -> Vec3 {
         pos: just_below_bottom_wall(),
         vel: -Vec3::Y,
         curve: Vec2::X,
-        expected_pos: Vec3::new(0.0, -PLAYFIELD_RES.half_height + ball::components::BallModifiers::starting().radius, 0.0),
+        expected_pos: Vec3::new(0.0, -PLAYFIELD_RES.aabb.half_extents.y + ball::components::BallModifiers::starting().radius, 0.0),
         expected_vel: Vec3::Y,
         expected_curve: Vec2::X,
     };
@@ -91,7 +91,7 @@ fn just_past_near_wall() -> Vec3 {
         pos: just_left_of_left_wall(),
         vel: -Vec3::X,
         curve: Vec2::X,
-        expected_pos: Vec3::new(-PLAYFIELD_RES.half_width + ball::components::BallModifiers::starting().radius, 0.0, 0.0),
+        expected_pos: Vec3::new(-PLAYFIELD_RES.aabb.half_extents.x + ball::components::BallModifiers::starting().radius, 0.0, 0.0),
         expected_vel: Vec3::X,
         expected_curve: Vec2::X,
     };
@@ -102,7 +102,7 @@ fn just_past_near_wall() -> Vec3 {
         pos: just_right_of_right_wall(),
         vel: Vec3::X,
         curve: Vec2::X,
-        expected_pos: Vec3::new(PLAYFIELD_RES.half_width - ball::components::BallModifiers::starting().radius, 0.0, 0.0),
+        expected_pos: Vec3::new(PLAYFIELD_RES.aabb.half_extents.x - ball::components::BallModifiers::starting().radius, 0.0, 0.0),
         expected_vel: -Vec3::X,
         expected_curve: Vec2::X,
     };
@@ -113,7 +113,7 @@ fn just_past_near_wall() -> Vec3 {
         pos: just_past_far_wall(),
         vel: -Vec3::Z,
         curve: Vec2::Y,
-        expected_pos: Vec3::new(0.0, 0.0, -PLAYFIELD_RES.half_depth + ball::components::BallModifiers::starting().radius),
+        expected_pos: Vec3::new(0.0, 0.0, -PLAYFIELD_RES.aabb.half_extents.z + ball::components::BallModifiers::starting().radius),
         expected_vel: Vec3::Z,
         expected_curve: Vec2::ZERO,
     };

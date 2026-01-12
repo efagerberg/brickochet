@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{ball, playfield, rendering};
+use crate::{ball, physics, playfield, rendering};
 
 const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Playfield {
-    half_width: 1.0,
-    half_height: 2.0,
-    half_depth: 3.0,
+    aabb: physics::components::Aabb3d {
+        half_extents: Vec3::new(1.0, 2.0, 3.0)
+    },
     wall_line_default_color: LinearRgba::new(0.0, 0.0, 0.0, 1.0),
     wall_line_highlight_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
 };

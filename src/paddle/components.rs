@@ -3,13 +3,6 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct Paddle;
 
-#[derive(Component, Clone, Copy)]
-pub struct PaddleSize {
-    pub half_width: f32,
-    pub half_height: f32,
-    pub contact_depth: f32,
-}
-
 #[derive(Component, Default)]
 pub struct PaddleMotionRecord {
     pub start_pos: Vec2, // Position at collision
