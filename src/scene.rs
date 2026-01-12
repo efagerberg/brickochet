@@ -34,8 +34,10 @@ fn setup_camera(commands: &mut Commands, playfield: &playfield::resources::Playf
             far: 200.0,
             ..default()
         }),
-        Transform::from_xyz(0.0, 0.0, playfield.aabb.half_extents.z + 9.0)
-            .looking_at(Vec3::new(0.0, 0.0, -playfield.aabb.half_extents.z), Vec3::Y),
+        Transform::from_xyz(0.0, 0.0, playfield.bounds.half_extents.z + 9.0).looking_at(
+            Vec3::new(0.0, 0.0, -playfield.bounds.half_extents.z),
+            Vec3::Y,
+        ),
     ));
 }
 
@@ -45,17 +47,17 @@ fn spawn_paddle(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     playfield: &playfield::resources::Playfield,
 ) {
-    let aabb = physics::components::Aabb3d {
+    let bounds = physics::components::BoundingCuboid {
         half_extents: Vec3::new(2.0, 1.0, 0.1),
     };
-    let cuboid_dimensions = aabb.half_extents * 2.0;
+    let cuboid_dimensions = bounds.half_extents * 2.0;
     commands.spawn((
         paddle::components::Paddle,
         Name::new("Paddle"),
-        aabb,
+        bounds,
         paddle::components::PaddleMotionRecord::default(),
         paddle::components::PaddleImpactModifiers::starting(),
-        Transform::from_xyz(0.0, 0.0, playfield.aabb.half_extents.z - 4.0),
+        Transform::from_xyz(0.0, 0.0, playfield.bounds.half_extents.z - 4.0),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Cuboid::new(
             cuboid_dimensions.x,
@@ -77,9 +79,12 @@ fn spawn_ball(
         Name::new("Ball"),
         physics::components::Curve::default(),
         physics::components::Velocity(ball_modifiers.base_velocity),
+        physics::components::BoundingSphere {
+            radius: ball_modifiers.base_radius,
+        },
         Transform::default(),
         GlobalTransform::default(),
-        Mesh3d(meshes.add(Sphere::new(ball_modifiers.radius))),
+        Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
     ));
 }
@@ -89,7 +94,7 @@ fn spawn_playfield(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) -> playfield::resources::Playfield {
-    let aabb = &physics::components::Aabb3d {
+    let bounds = &physics::components::BoundingCuboid {
         half_extents: Vec3::new(10.0, 5.0, 20.0),
     };
 
@@ -97,7 +102,7 @@ fn spawn_playfield(
 
     let num_lines = 10;
     let line_thickness = 0.25;
-    let line_spacing = (aabb.half_extents.z * 2.0) / (num_lines as f32);
+    let line_spacing = (bounds.half_extents.z * 2.0) / (num_lines as f32);
 
     let mut children = vec![];
 
@@ -105,12 +110,12 @@ fn spawn_playfield(
     let line_highlight_color = LinearRgba::rgb(0.0, 0.4, 0.2);
 
     for i in 0..num_lines {
-        let z = -aabb.half_extents.z + i as f32 * line_spacing;
+        let z = -bounds.half_extents.z + i as f32 * line_spacing;
         let line_material = materials.add(StandardMaterial {
             emissive: line_default_color,
             ..default()
         });
-        let mesh = meshes.add(build_depth_lines_mesh(aabb, line_thickness));
+        let mesh = meshes.add(build_depth_lines_mesh(bounds, line_thickness));
 
         children.push(
             commands
@@ -131,7 +136,7 @@ fn spawn_playfield(
         meshes,
         wall_material.clone(),
         &mut children,
-        aabb,
+        bounds,
         0.1,
     );
 
@@ -147,7 +152,7 @@ fn spawn_playfield(
     }
 
     let playfield = playfield::resources::Playfield {
-        aabb: aabb.clone(),
+        bounds: bounds.clone(),
         wall_line_default_color: line_default_color,
         wall_line_highlight_color: line_highlight_color,
     };
@@ -166,7 +171,10 @@ fn setup_lighting(commands: &mut Commands) {
     ));
 }
 
-fn build_depth_lines_mesh(aabb: &physics::components::Aabb3d, line_thickness: f32) -> Mesh {
+fn build_depth_lines_mesh(
+    bounds: &physics::components::BoundingCuboid,
+    line_thickness: f32,
+) -> Mesh {
     let mut mesh = Mesh::new(
         mesh::PrimitiveTopology::TriangleList,
         asset::RenderAssetUsages::MAIN_WORLD | asset::RenderAssetUsages::RENDER_WORLD,
@@ -198,10 +206,10 @@ fn build_depth_lines_mesh(aabb: &physics::components::Aabb3d, line_thickness: f3
 
     for (length, offset_axis, rotation) in [
         // Lines running along X (floor & ceiling)
-        (aabb.half_extents.x * 2.0, Vec3::Y, Mat4::IDENTITY),
+        (bounds.half_extents.x * 2.0, Vec3::Y, Mat4::IDENTITY),
         // Lines running along Y (left & right walls)
         (
-            aabb.half_extents.y * 2.0,
+            bounds.half_extents.y * 2.0,
             Vec3::X,
             Mat4::from_rotation_z(std::f32::consts::FRAC_PI_2),
         ),
@@ -209,8 +217,8 @@ fn build_depth_lines_mesh(aabb: &physics::components::Aabb3d, line_thickness: f3
         // Two sides per orientation
         for side in [-1.0, 1.0] {
             let offset = match offset_axis {
-                Vec3::Y => Vec3::Y * side * aabb.half_extents.y,
-                Vec3::X => Vec3::X * side * aabb.half_extents.x,
+                Vec3::Y => Vec3::Y * side * bounds.half_extents.y,
+                Vec3::X => Vec3::X * side * bounds.half_extents.x,
                 _ => Vec3::ZERO,
             };
 
@@ -232,7 +240,7 @@ fn spawn_playfield_walls(
     meshes: &mut ResMut<Assets<Mesh>>,
     wall_material: Handle<StandardMaterial>,
     children: &mut Vec<Entity>,
-    aabb: &physics::components::Aabb3d,
+    bounds: &physics::components::BoundingCuboid,
     wall_thickness: f32,
 ) {
     // For each axis: 0=X, 1=Y, 2=Z
@@ -240,25 +248,25 @@ fn spawn_playfield_walls(
         (
             0,
             Vec3::new(
-                2.0 * aabb.half_extents.x,
-                2.0 * aabb.half_extents.y,
+                2.0 * bounds.half_extents.x,
+                2.0 * bounds.half_extents.y,
                 wall_thickness,
             ),
         ), // Z walls
         (
             1,
             Vec3::new(
-                2.0 * aabb.half_extents.x,
+                2.0 * bounds.half_extents.x,
                 wall_thickness,
-                2.0 * aabb.half_extents.z,
+                2.0 * bounds.half_extents.z,
             ),
         ), // Y walls
         (
             2,
             Vec3::new(
                 wall_thickness,
-                2.0 * aabb.half_extents.y,
-                2.0 * aabb.half_extents.z,
+                2.0 * bounds.half_extents.y,
+                2.0 * bounds.half_extents.z,
             ),
         ), // X walls
     ] {
@@ -270,9 +278,9 @@ fn spawn_playfield_walls(
             }
 
             let translation = match axis {
-                0 => Vec3::new(0.0, 0.0, side * aabb.half_extents.z), // back/front
-                1 => Vec3::new(0.0, side * aabb.half_extents.y, 0.0), // floor/ceiling
-                2 => Vec3::new(side * aabb.half_extents.x, 0.0, 0.0), // left/right
+                0 => Vec3::new(0.0, 0.0, side * bounds.half_extents.z), // back/front
+                1 => Vec3::new(0.0, side * bounds.half_extents.y, 0.0), // floor/ceiling
+                2 => Vec3::new(side * bounds.half_extents.x, 0.0, 0.0), // left/right
                 _ => Vec3::ZERO,
             };
 

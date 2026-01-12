@@ -4,11 +4,16 @@ use bevy::prelude::*;
 pub struct Curve(pub Vec2);
 
 #[derive(Component, Default, Clone)]
-pub struct Aabb3d {
-    pub half_extents: Vec3
+pub struct BoundingCuboid {
+    pub half_extents: Vec3,
 }
 
-// If you have a velocity and an Aabb you are a dymamic body, otherwise if you have
-// an Aabb and no velocity you are static
+#[derive(Component, Default, Clone)]
+pub struct BoundingSphere {
+    pub radius: f32,
+}
+
+// If you have a velocity and an Bounding Cuboid you are a dymamic body, otherwise if you have
+// an Bounding Cuboid and no velocity you are static
 #[derive(Component)]
 pub struct Velocity(pub Vec3);

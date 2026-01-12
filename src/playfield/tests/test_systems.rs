@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use crate::{ball, physics, playfield, rendering};
 
 const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Playfield {
-    aabb: physics::components::Aabb3d {
-        half_extents: Vec3::new(1.0, 2.0, 3.0)
+    bounds: physics::components::BoundingCuboid {
+        half_extents: Vec3::new(1.0, 2.0, 3.0),
     },
     wall_line_default_color: LinearRgba::new(0.0, 0.0, 0.0, 1.0),
     wall_line_highlight_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
@@ -61,8 +61,14 @@ fn setup(
     let mut app = App::new();
     app.insert_resource(playfield_res.clone());
     let ball_transform = make_transform(ball_z);
-    app.world_mut()
-        .spawn((ball::components::BallModifiers::starting(), ball_transform));
+    let ball_modifiers = ball::components::BallModifiers::starting();
+    app.world_mut().spawn((
+        ball_modifiers.clone(),
+        ball_transform,
+        physics::components::BoundingSphere {
+            radius: ball_modifiers.base_radius,
+        },
+    ));
     let lines_transform = make_transform(lines_z);
     let lines_entity = app
         .world_mut()

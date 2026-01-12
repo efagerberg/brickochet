@@ -4,7 +4,7 @@ use bevy::prelude::*;
 pub fn paddle_mouse_control(
     mut mouse_motion_message_reader: MessageReader<bevy::input::mouse::MouseMotion>,
     paddle_single: Single<
-        (&mut Transform, &physics::components::Aabb3d),
+        (&mut Transform, &physics::components::BoundingCuboid),
         With<paddle::components::Paddle>,
     >,
     playfield: Res<playfield::resources::Playfield>,
@@ -19,12 +19,12 @@ pub fn paddle_mouse_control(
         return;
     }
 
-    let (mut paddle_transform, aabb) = paddle_single.into_inner();
+    let (mut paddle_transform, bounds) = paddle_single.into_inner();
 
     let sensitivity = 0.025;
     let new_velocity = delta * sensitivity;
-    let x_abs_limit = playfield.aabb.half_extents.x - aabb.half_extents.x;
-    let y_abs_limit = playfield.aabb.half_extents.y - aabb.half_extents.y;
+    let x_abs_limit = playfield.bounds.half_extents.x - bounds.half_extents.x;
+    let y_abs_limit = playfield.bounds.half_extents.y - bounds.half_extents.y;
 
     paddle_transform.translation.x =
         (paddle_transform.translation.x + new_velocity.x).clamp(-x_abs_limit, x_abs_limit);
@@ -41,7 +41,7 @@ pub fn paddle_ball_collision(
     paddle: Single<
         (
             &Transform,
-            &physics::components::Aabb3d,
+            &physics::components::BoundingCuboid,
             &paddle::components::PaddleImpactModifiers,
             &mut paddle::components::PaddleMotionRecord,
         ),
@@ -53,7 +53,7 @@ pub fn paddle_ball_collision(
     time: Res<Time>,
 ) {
     let (ball_modifiers, ball_transform, mut ball_velocity) = ball_query.into_inner();
-    let (paddle_transform, aabb, paddle_modifiers, mut paddle_motion_record) =
+    let (paddle_transform, bounds, paddle_modifiers, mut paddle_motion_record) =
         paddle.into_inner();
 
     let p = paddle_transform.translation;
@@ -65,18 +65,18 @@ pub fn paddle_ball_collision(
     }
 
     // 2. X overlap
-    if (b.x - p.x).abs() > aabb.half_extents.x + ball_modifiers.radius {
+    if (b.x - p.x).abs() > bounds.half_extents.x + ball_modifiers.base_radius {
         return;
     }
 
     // 3. Y overlap
-    if (b.y - p.y).abs() > aabb.half_extents.y + ball_modifiers.radius {
+    if (b.y - p.y).abs() > bounds.half_extents.y + ball_modifiers.base_radius {
         return;
     }
 
     // 4. Z overlap band
-    let z_min = p.z - aabb.half_extents.z - ball_modifiers.radius;
-    let z_max = p.z + aabb.half_extents.z + ball_modifiers.radius;
+    let z_min = p.z - bounds.half_extents.z - ball_modifiers.base_radius;
+    let z_max = p.z + bounds.half_extents.z + ball_modifiers.base_radius;
 
     if b.z < z_min || b.z > z_max {
         return;

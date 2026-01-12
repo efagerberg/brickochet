@@ -10,8 +10,8 @@ const PADDLE_HALF: f32 = 1.0;
 fn base_app() -> App {
     let mut app = App::new();
     app.insert_resource(playfield::resources::Playfield {
-        aabb: physics::components::Aabb3d {
-            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.1)
+        bounds: physics::components::BoundingCuboid {
+            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.1),
         },
         ..default()
     });
@@ -77,8 +77,8 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         .world_mut()
         .spawn((
             paddle::components::Paddle,
-            physics::components::Aabb3d {
-                half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5,)
+            physics::components::BoundingCuboid {
+                half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5),
             },
             Transform {
                 translation: case.starting_position,
@@ -190,7 +190,7 @@ fn test_paddle_ball_collision(case: PaddleBallCollisionCase) {
 
     app.world_mut().spawn((
         paddle::components::Paddle,
-        physics::components::Aabb3d {
+        physics::components::BoundingCuboid {
             half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 1.0),
         },
         paddle::components::PaddleImpactModifiers {
