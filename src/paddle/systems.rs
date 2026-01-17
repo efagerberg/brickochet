@@ -32,16 +32,15 @@ pub fn paddle_mouse_control(
         (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
 }
 
-pub fn paddle_ball_collision(
-    ball_query: Single<(
-        &ball::components::BallModifiers,
-        &Transform,
+pub fn paddle_sphere_collision(
+    mut messages: MessageReader<physics::messages::CollisionMessage>,
+    mut sphere_query: Query<
         &mut physics::components::Velocity,
-    )>,
-    paddle: Single<
+        With<physics::components::BoundingSphere>,
+    >,
+    mut paddle_query: Query<
         (
             &Transform,
-            &physics::components::BoundingCuboid,
             &paddle::components::PaddleImpactModifiers,
             &mut paddle::components::PaddleMotionRecord,
         ),
@@ -52,47 +51,26 @@ pub fn paddle_ball_collision(
     >,
     time: Res<Time>,
 ) {
-    let (ball_modifiers, ball_transform, mut ball_velocity) = ball_query.into_inner();
-    let (paddle_transform, bounds, paddle_modifiers, mut paddle_motion_record) =
-        paddle.into_inner();
+    for message in messages.read() {
+        if let (
+            Ok(mut sphere_velocity),
+            Ok((paddle_transform, paddle_modifiers, mut paddle_motion_record)),
+        ) = (
+            sphere_query.get_mut(message.a),
+            paddle_query.get_mut(message.b),
+        ) {
+            // Reflect Z only for simplified but more consistent physics
+            sphere_velocity.0.z = -sphere_velocity.0.z - paddle_modifiers.contact_z_speed_increase;
 
-    let p = paddle_transform.translation;
-    let b = ball_transform.translation;
-
-    // 1. Must be moving toward the paddle (+Z example)
-    if ball_velocity.0.z <= 0.0 {
-        return;
+            // Start motion record for curve computation
+            paddle_motion_record.start_pos = Vec2::new(
+                paddle_transform.translation.x,
+                paddle_transform.translation.y,
+            );
+            paddle_motion_record.start_time = time.elapsed_secs();
+            paddle_motion_record.pending = true;
+        }
     }
-
-    // 2. X overlap
-    if (b.x - p.x).abs() > bounds.half_extents.x + ball_modifiers.base_radius {
-        return;
-    }
-
-    // 3. Y overlap
-    if (b.y - p.y).abs() > bounds.half_extents.y + ball_modifiers.base_radius {
-        return;
-    }
-
-    // 4. Z overlap band
-    let z_min = p.z - bounds.half_extents.z - ball_modifiers.base_radius;
-    let z_max = p.z + bounds.half_extents.z + ball_modifiers.base_radius;
-
-    if b.z < z_min || b.z > z_max {
-        return;
-    }
-
-    // --- Collision confirmed ---
-    // Reflect Z only
-    ball_velocity.0.z = -ball_velocity.0.z - paddle_modifiers.contact_z_speed_increase;
-
-    // Start motion record for curve computation
-    paddle_motion_record.start_pos = Vec2::new(
-        paddle_transform.translation.x,
-        paddle_transform.translation.y,
-    );
-    paddle_motion_record.start_time = time.elapsed_secs();
-    paddle_motion_record.pending = true;
 }
 
 pub fn record_paddle_motion(

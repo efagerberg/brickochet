@@ -25,7 +25,6 @@ pub fn apply_curve(
     }
 }
 
-
 pub fn detect_collisions(
     spheres: Query<(Entity, &Transform, &physics::components::BoundingSphere)>,
     cuboids: Query<(Entity, &Transform, &physics::components::BoundingCuboid)>,
@@ -39,16 +38,9 @@ pub fn detect_collisions(
                 b_transform.translation,
                 b_bounds.half_extents,
             ) {
-                let normal = physics::math::sphere_aabb_normal(
-                    a_transform.translation,
-                    b_transform.translation,
-                    b_bounds.half_extents,
-                );
-
                 messages.write(physics::messages::CollisionMessage {
                     a: a_entity,
                     b: b_entity,
-                    normal,
                 });
             }
         }

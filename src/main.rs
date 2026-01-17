@@ -47,11 +47,11 @@ fn main() {
                 (
                     physics::systems::apply_curve,
                     physics::systems::apply_velocity,
-                    physics::systems::detect_collisions
+                    physics::systems::detect_collisions,
                 )
                     .chain(),
                 (
-                    paddle::systems::paddle_ball_collision,
+                    paddle::systems::paddle_sphere_collision,
                     ball::systems::reflect_ball,
                     paddle::systems::apply_curve_from_motion_record,
                 )

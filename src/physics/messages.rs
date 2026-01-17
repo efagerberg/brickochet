@@ -4,5 +4,4 @@ use bevy::prelude::*;
 pub struct CollisionMessage {
     pub a: Entity,
     pub b: Entity,
-    pub normal: Vec3,
 }
