@@ -25,8 +25,8 @@ impl PaddleImpactModifiers {
         return PaddleImpactModifiers {
             normal_curve_scale: 6.0,
             super_curve_scale: 18.0,
-            normal_curve_position_delta_threshold: 9.0,
-            super_curve_position_delta_threshold: 4.0,
+            normal_curve_position_delta_threshold: 0.002,
+            super_curve_position_delta_threshold: 0.006,
             contact_z_speed_increase: 1.0,
         };
     }

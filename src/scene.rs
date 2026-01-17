@@ -14,81 +14,6 @@ pub fn setup(
     spawn_ball(&mut commands, &mut meshes, &mut materials);
 }
 
-fn setup_camera(commands: &mut Commands, playfield: &playfield::resources::Playfield) {
-    commands.spawn((
-        Camera3d::default(),
-        Name::new("Camera"),
-        Camera {
-            clear_color: ClearColorConfig::Custom(Color::BLACK),
-            ..default()
-        },
-        core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
-        post_process::bloom::Bloom {
-            intensity: 0.05,
-            ..default()
-        },
-        core_pipeline::tonemapping::DebandDither::Enabled,
-        Projection::Perspective(PerspectiveProjection {
-            fov: std::f32::consts::FRAC_PI_3, // ~60°
-            near: 0.1,
-            far: 200.0,
-            ..default()
-        }),
-        Transform::from_xyz(0.0, 0.0, playfield.bounds.half_extents.z + 9.0).looking_at(
-            Vec3::new(0.0, 0.0, -playfield.bounds.half_extents.z),
-            Vec3::Y,
-        ),
-    ));
-}
-
-fn spawn_paddle(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    playfield: &playfield::resources::Playfield,
-) {
-    let bounds = physics::components::BoundingCuboid {
-        half_extents: Vec3::new(2.0, 1.0, 0.1),
-    };
-    let cuboid_dimensions = bounds.half_extents * 2.0;
-    commands.spawn((
-        paddle::components::Paddle,
-        Name::new("Paddle"),
-        bounds,
-        paddle::components::PaddleMotionRecord::default(),
-        paddle::components::PaddleImpactModifiers::starting(),
-        Transform::from_xyz(0.0, 0.0, playfield.bounds.half_extents.z - 4.0),
-        GlobalTransform::default(),
-        Mesh3d(meshes.add(Cuboid::new(
-            cuboid_dimensions.x,
-            cuboid_dimensions.y,
-            cuboid_dimensions.z,
-        ))),
-        MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
-    ));
-}
-
-fn spawn_ball(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-) {
-    let ball_modifiers = ball::components::BallModifiers::starting();
-    commands.spawn((
-        ball_modifiers.clone(),
-        Name::new("Ball"),
-        physics::components::Curve::default(),
-        physics::components::Velocity(ball_modifiers.base_velocity),
-        physics::components::BoundingSphere {
-            radius: ball_modifiers.base_radius,
-        },
-        Transform::default(),
-        GlobalTransform::default(),
-        Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
-        MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
-    ));
-}
-
 fn spawn_playfield(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -158,17 +83,6 @@ fn spawn_playfield(
     };
     commands.insert_resource(playfield.clone());
     playfield
-}
-
-fn setup_lighting(commands: &mut Commands) {
-    commands.spawn((
-        DirectionalLight {
-            illuminance: 1000.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_rotation_x(-0.7)),
-    ));
 }
 
 fn build_depth_lines_mesh(
@@ -305,4 +219,91 @@ fn spawn_playfield_walls(
             );
         }
     }
+}
+
+
+fn setup_camera(commands: &mut Commands, playfield: &playfield::resources::Playfield) {
+    commands.spawn((
+        Camera3d::default(),
+        Name::new("Camera"),
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
+            ..default()
+        },
+        core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
+        post_process::bloom::Bloom {
+            intensity: 0.05,
+            ..default()
+        },
+        core_pipeline::tonemapping::DebandDither::Enabled,
+        Projection::Perspective(PerspectiveProjection {
+            fov: std::f32::consts::FRAC_PI_3, // ~60°
+            near: 0.1,
+            far: 200.0,
+            ..default()
+        }),
+        Transform::from_xyz(0.0, 0.0, playfield.bounds.half_extents.z + 9.0).looking_at(
+            Vec3::new(0.0, 0.0, -playfield.bounds.half_extents.z),
+            Vec3::Y,
+        ),
+    ));
+}
+
+fn spawn_paddle(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    playfield: &playfield::resources::Playfield,
+) {
+    let bounds = physics::components::BoundingCuboid {
+        half_extents: Vec3::new(2.0, 1.0, 0.1),
+    };
+    let cuboid_dimensions = bounds.half_extents * 2.0;
+    commands.spawn((
+        paddle::components::Paddle,
+        Name::new("Paddle"),
+        bounds,
+        paddle::components::PaddleMotionRecord::default(),
+        paddle::components::PaddleImpactModifiers::starting(),
+        Transform::from_xyz(0.0, 0.0, playfield.bounds.half_extents.z - 4.0),
+        GlobalTransform::default(),
+        Mesh3d(meshes.add(Cuboid::new(
+            cuboid_dimensions.x,
+            cuboid_dimensions.y,
+            cuboid_dimensions.z,
+        ))),
+        MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
+    ));
+}
+
+fn spawn_ball(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) {
+    let ball_modifiers = ball::components::BallModifiers::starting();
+    commands.spawn((
+        ball_modifiers.clone(),
+        Name::new("Ball"),
+        physics::components::Curve::default(),
+        physics::components::Velocity(ball_modifiers.base_velocity),
+        physics::components::BoundingSphere {
+            radius: ball_modifiers.base_radius,
+        },
+        Transform::default(),
+        GlobalTransform::default(),
+        Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
+        MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
+    ));
+}
+
+fn setup_lighting(commands: &mut Commands) {
+    commands.spawn((
+        DirectionalLight {
+            illuminance: 1000.0,
+            shadows_enabled: false,
+            ..default()
+        },
+        Transform::from_rotation(Quat::from_rotation_x(-0.7)),
+    ));
 }

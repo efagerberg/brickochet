@@ -44,10 +44,7 @@ pub fn paddle_sphere_collision(
             &paddle::components::PaddleImpactModifiers,
             &mut paddle::components::PaddleMotionRecord,
         ),
-        (
-            With<paddle::components::Paddle>,
-            Without<ball::components::BallModifiers>,
-        ),
+        (With<paddle::components::Paddle>,),
     >,
     time: Res<Time>,
 ) {
@@ -60,7 +57,9 @@ pub fn paddle_sphere_collision(
             paddle_query.get_mut(message.b),
         ) {
             // Reflect Z only for simplified but more consistent physics
-            sphere_velocity.0.z = -sphere_velocity.0.z - paddle_modifiers.contact_z_speed_increase;
+            let reflect_scale = -sphere_velocity.0.z.signum();
+            let z_magnitude = sphere_velocity.0.z.abs() + paddle_modifiers.contact_z_speed_increase;
+            sphere_velocity.0.z = reflect_scale * z_magnitude;
 
             // Start motion record for curve computation
             paddle_motion_record.start_pos = Vec2::new(
@@ -75,19 +74,22 @@ pub fn paddle_sphere_collision(
 
 pub fn record_paddle_motion(
     time: Res<Time>,
-    paddle: Single<
+    paddle_query: Single<
         (&Transform, &mut paddle::components::PaddleMotionRecord),
         With<paddle::components::Paddle>,
     >,
+    window_query: Single<&Window>,
 ) {
-    let (transform, mut record) = paddle.into_inner();
-    if record.pending {
-        // Compute delta if 200ms have passed
-        if time.elapsed_secs() - record.start_time >= 0.2 {
-            let current_pos = Vec2::new(transform.translation.x, transform.translation.y);
-            record.delta = current_pos - record.start_pos;
-            record.pending = false; // Done computing, ready for curve
-        }
+    let window = window_query.into_inner();
+    let width = window.width();
+    let height = window.height();
+    let (transform, mut record) = paddle_query.into_inner();
+    // Only update if 200ms has elapsed from start of collision
+    if record.pending && time.elapsed_secs() - record.start_time >= 0.2 {
+        let current_pos = Vec2::new(transform.translation.x, transform.translation.y);
+        let raw_delta = current_pos - record.start_pos;
+        record.delta = Vec2::new(raw_delta.x / width, raw_delta.y / height);
+        record.pending = false; // Done computing, ready for curve
     }
 }
 

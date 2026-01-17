@@ -100,109 +100,76 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
     assert_eq!(transform.translation, case.expected_position);
 }
 
-struct PaddleBallCollisionCase {
-    ball_position: Vec3,
-    paddle_position: Vec3,
+struct PaddleSphereCollisionCase {
+    collides: bool,
+    contact_z_speed_increase: f32,
     initial_velocity: Vec3,
     expected_z_velocity: f32,
 }
 
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    PaddleSphereCollisionCase {
+        collides: true,
+        contact_z_speed_increase: 0.5,
         initial_velocity: Vec3::new(0.0, 0.0, 5.0),
         expected_z_velocity: -5.5,
     }
-    ; "valid collision"
+    ; "Positive Z collision"
 )]
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(2.0, 0.0, -0.5),
-        paddle_position: Vec3::ZERO,
-        initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0,
-    }
-    ; "miss on x axis"
-)]
-#[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -5.0),
-        paddle_position: Vec3::ZERO,
-        initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0,
-    }
-    ; "miss z band"
-)]
-#[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    PaddleSphereCollisionCase {
+        collides: true,
+        contact_z_speed_increase: 0.5,
         initial_velocity: Vec3::new(0.0, 0.0, -5.0),
-        expected_z_velocity: -5.0,
+        expected_z_velocity: 5.5,
     }
-    ; "moving away"
+    ; "Negative Z collision"
 )]
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 2.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    PaddleSphereCollisionCase {
+        collides: false,
+        contact_z_speed_increase: 1.0,
         initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0, // no collision
+        expected_z_velocity: 5.0,
     }
-    ; "miss on y axis"
+    ; "No collision"
 )]
-#[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -5.0),
-        paddle_position: Vec3::ZERO,
-        initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0, // no collision
-    }
-    ; "z below min"
-)]
-#[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, 5.0),
-        paddle_position: Vec3::ZERO,
-        initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0, // no collision
-    }
-    ; "z above max"
-)]
-fn test_paddle_ball_collision(case: PaddleBallCollisionCase) {
+fn test_paddle_sphere_collision(case: PaddleSphereCollisionCase) {
     let mut app = App::new();
-    app.add_systems(Update, paddle::systems::paddle_ball_collision);
+    app.add_message::<physics::messages::CollisionMessage>();
+    app.add_systems(Update, paddle::systems::paddle_sphere_collision);
     let time: Time = Time::default();
     app.insert_resource(time);
 
     let ball_entity = app
         .world_mut()
         .spawn((
-            ball::components::BallModifiers::starting(),
-            Transform {
-                translation: case.ball_position,
-                ..default()
-            },
             physics::components::Velocity(case.initial_velocity),
+            physics::components::BoundingSphere::default()
         ))
         .id();
 
-    app.world_mut().spawn((
-        paddle::components::Paddle,
-        physics::components::BoundingCuboid {
-            half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 1.0),
-        },
-        paddle::components::PaddleImpactModifiers {
-            contact_z_speed_increase: 0.5,
-            ..default()
-        },
-        paddle::components::PaddleMotionRecord::default(),
-        Transform {
-            translation: case.paddle_position,
-            ..default()
-        },
-    ));
+    let paddle_entity = app
+        .world_mut()
+        .spawn((
+            paddle::components::Paddle,
+            Transform::default(),
+            paddle::components::PaddleImpactModifiers {
+                contact_z_speed_increase: case.contact_z_speed_increase,
+                ..default()
+            },
+            paddle::components::PaddleMotionRecord::default(),
+        ))
+        .id();
+
+    if case.collides {
+        app.world_mut()
+            .resource_mut::<Messages<physics::messages::CollisionMessage>>()
+            .write(physics::messages::CollisionMessage {
+                a: ball_entity,
+                b: paddle_entity,
+            });
+    }
 
     app.update();
 
@@ -231,10 +198,10 @@ struct RecordPaddleMotionCase {
         pending: true,
         current_pos: Vec3::new(2.0, 1.0, 0.0),
         advance_time: 0.31,
-        expected_delta: Vec2::new(2.0, 1.0),
+        expected_delta: Vec2::new(0.02, 0.02),
         expected_pending: false,
     }
-    ; "computes delta after threshold"
+    ; "computes normalized delta after threshold"
 )]
 #[test_case(
     RecordPaddleMotionCase {
@@ -262,6 +229,12 @@ struct RecordPaddleMotionCase {
 )]
 fn test_record_paddle_motion(case: RecordPaddleMotionCase) {
     let mut app = App::new();
+
+    app.world_mut().spawn(Window {
+        resolution: (100, 50).into(),
+        ..default()
+    });
+
     app.add_systems(Update, paddle::systems::record_paddle_motion);
 
     let mut time: Time = Time::default();
