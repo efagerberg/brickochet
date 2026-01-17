@@ -82,8 +82,8 @@ pub fn record_paddle_motion(
 ) {
     let (transform, mut record) = paddle.into_inner();
     if record.pending {
-        // Compute delta if 30ms have passed
-        if time.elapsed_secs() - record.start_time >= 0.3 {
+        // Compute delta if 200ms have passed
+        if time.elapsed_secs() - record.start_time >= 0.2 {
             let current_pos = Vec2::new(transform.translation.x, transform.translation.y);
             record.delta = current_pos - record.start_pos;
             record.pending = false; // Done computing, ready for curve
