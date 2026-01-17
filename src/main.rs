@@ -26,6 +26,7 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
+        .add_message::<physics::messages::CollisionMessage>()
         .add_systems(Startup, scene::setup)
         .add_systems(
             Update,
@@ -46,6 +47,7 @@ fn main() {
                 (
                     physics::systems::apply_curve,
                     physics::systems::apply_velocity,
+                    physics::systems::detect_collisions
                 )
                     .chain(),
                 (

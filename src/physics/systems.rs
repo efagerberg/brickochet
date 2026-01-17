@@ -24,3 +24,33 @@ pub fn apply_curve(
         velocity.0.y += curve.0.y * delta_secs;
     }
 }
+
+
+pub fn detect_collisions(
+    spheres: Query<(Entity, &Transform, &physics::components::BoundingSphere)>,
+    cuboids: Query<(Entity, &Transform, &physics::components::BoundingCuboid)>,
+    mut messages: MessageWriter<physics::messages::CollisionMessage>,
+) {
+    for (a_entity, a_transform, a_bounds) in spheres.iter() {
+        for (b_entity, b_transform, b_bounds) in cuboids.iter() {
+            if physics::math::sphere_aabb_intersects(
+                a_transform.translation,
+                a_bounds.radius,
+                b_transform.translation,
+                b_bounds.half_extents,
+            ) {
+                let normal = physics::math::sphere_aabb_normal(
+                    a_transform.translation,
+                    b_transform.translation,
+                    b_bounds.half_extents,
+                );
+
+                messages.write(physics::messages::CollisionMessage {
+                    a: a_entity,
+                    b: b_entity,
+                    normal,
+                });
+            }
+        }
+    }
+}
