@@ -46,3 +46,20 @@ pub fn detect_collisions(
         }
     }
 }
+
+pub fn reflect_sphere(
+    mut messages: MessageReader<physics::messages::CollisionMessage>,
+    mut sphere_query: Query<
+        &mut physics::components::Velocity,
+        With<physics::components::BoundingSphere>,
+    >,
+) {
+    for message in messages.read() {
+        if let Ok(mut sphere_velocity) = sphere_query.get_mut(message.a) {
+            // Reflect Z only for simplified but more consistent physics
+            let reflect_scale = -sphere_velocity.0.z.signum();
+            let z_magnitude = sphere_velocity.0.z.abs();
+            sphere_velocity.0.z = reflect_scale * z_magnitude;
+        }
+    }
+}

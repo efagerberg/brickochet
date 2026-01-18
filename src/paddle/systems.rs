@@ -32,35 +32,38 @@ pub fn paddle_mouse_control(
         (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
 }
 
-pub fn paddle_sphere_collision(
+pub fn apply_paddle_impact_modifiers(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         &mut physics::components::Velocity,
         With<physics::components::BoundingSphere>,
     >,
     mut paddle_query: Query<
-        (
-            &Transform,
-            &paddle::components::PaddleImpactModifiers,
-            &mut paddle::components::PaddleMotionRecord,
-        ),
+        &paddle::components::PaddleImpactModifiers,
+        With<paddle::components::Paddle>,
+    >,
+) {
+    for message in messages.read() {
+        if let (Ok(mut sphere_velocity), Ok(paddle_modifiers)) = (
+            sphere_query.get_mut(message.a),
+            paddle_query.get_mut(message.b),
+        ) {
+            let z_direction = sphere_velocity.0.z.signum();
+            sphere_velocity.0.z += z_direction * paddle_modifiers.z_speed_delta;
+        }
+    }
+}
+
+pub fn initialize_paddle_motion(
+    mut messages: MessageReader<physics::messages::CollisionMessage>,
+    mut paddle_query: Query<
+        (&Transform, &mut paddle::components::PaddleMotionRecord),
         (With<paddle::components::Paddle>,),
     >,
     time: Res<Time>,
 ) {
     for message in messages.read() {
-        if let (
-            Ok(mut sphere_velocity),
-            Ok((paddle_transform, paddle_modifiers, mut paddle_motion_record)),
-        ) = (
-            sphere_query.get_mut(message.a),
-            paddle_query.get_mut(message.b),
-        ) {
-            // Reflect Z only for simplified but more consistent physics
-            let reflect_scale = -sphere_velocity.0.z.signum();
-            let z_magnitude = sphere_velocity.0.z.abs() + paddle_modifiers.contact_z_speed_increase;
-            sphere_velocity.0.z = reflect_scale * z_magnitude;
-
+        if let Ok((paddle_transform, mut paddle_motion_record)) = paddle_query.get_mut(message.b) {
             // Start motion record for curve computation
             paddle_motion_record.start_pos = Vec2::new(
                 paddle_transform.translation.x,
@@ -72,7 +75,7 @@ pub fn paddle_sphere_collision(
     }
 }
 
-pub fn record_paddle_motion(
+pub fn finalize_paddle_motion(
     time: Res<Time>,
     paddle_query: Single<
         (&Transform, &mut paddle::components::PaddleMotionRecord),
@@ -104,39 +107,25 @@ pub fn apply_curve_from_motion_record(
     >,
 ) {
     let (mut motion_record, modifiers) = paddle.into_inner();
-    if !motion_record.pending && motion_record.delta != Vec2::ZERO {
-        // Compute curve based on motion delta over 30ms
-        ball_curve.0.x = match motion_record.delta.x {
-            d if d <= -modifiers.super_curve_position_delta_threshold => {
-                modifiers.super_curve_scale
-            }
-            d if d <= -modifiers.normal_curve_position_delta_threshold => {
-                modifiers.normal_curve_scale
-            }
-            d if d >= modifiers.super_curve_position_delta_threshold => {
-                -modifiers.super_curve_scale
-            }
-            d if d >= modifiers.normal_curve_position_delta_threshold => {
-                -modifiers.normal_curve_scale
-            }
-            _ => 0.0,
-        };
-
-        ball_curve.0.y = match motion_record.delta.y {
-            d if d <= -modifiers.super_curve_position_delta_threshold => {
-                modifiers.super_curve_scale
-            }
-            d if d <= -modifiers.normal_curve_position_delta_threshold => {
-                modifiers.normal_curve_scale
-            }
-            d if d >= modifiers.super_curve_position_delta_threshold => {
-                -modifiers.super_curve_scale
-            }
-            d if d >= modifiers.normal_curve_position_delta_threshold => {
-                -modifiers.normal_curve_scale
-            }
-            _ => 0.0,
-        };
-        motion_record.delta = Vec2::ZERO;
+    if motion_record.pending || motion_record.delta == Vec2::ZERO {
+        return;
     }
+
+    // Compute curve based on motion delta over 30ms
+    ball_curve.0.x = match motion_record.delta.x {
+        d if d <= -modifiers.super_curve_position_delta_threshold => modifiers.super_curve_scale,
+        d if d <= -modifiers.normal_curve_position_delta_threshold => modifiers.normal_curve_scale,
+        d if d >= modifiers.super_curve_position_delta_threshold => -modifiers.super_curve_scale,
+        d if d >= modifiers.normal_curve_position_delta_threshold => -modifiers.normal_curve_scale,
+        _ => 0.0,
+    };
+
+    ball_curve.0.y = match motion_record.delta.y {
+        d if d <= -modifiers.super_curve_position_delta_threshold => modifiers.super_curve_scale,
+        d if d <= -modifiers.normal_curve_position_delta_threshold => modifiers.normal_curve_scale,
+        d if d >= modifiers.super_curve_position_delta_threshold => -modifiers.super_curve_scale,
+        d if d >= modifiers.normal_curve_position_delta_threshold => -modifiers.normal_curve_scale,
+        _ => 0.0,
+    };
+    motion_record.delta = Vec2::ZERO;
 }

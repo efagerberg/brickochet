@@ -1,7 +1,7 @@
 use crate::{ball, physics, playfield};
 use bevy::prelude::*;
 
-pub fn reflect_ball(
+pub fn wall_collision_handler(
     playfield: Res<playfield::resources::Playfield>,
     ball: Single<(
         &physics::components::BoundingSphere,

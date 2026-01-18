@@ -221,7 +221,6 @@ fn spawn_playfield_walls(
     }
 }
 
-
 fn setup_camera(commands: &mut Commands, playfield: &playfield::resources::Playfield) {
     commands.spawn((
         Camera3d::default(),

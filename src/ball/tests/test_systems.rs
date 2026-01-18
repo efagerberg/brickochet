@@ -158,7 +158,7 @@ fn test_reflect_ball(case: ReflectCase) {
     app.insert_resource(PLAYFIELD_RES);
 
     let entity = setup_ball(&mut app, case.pos, case.vel, case.curve);
-    app.add_systems(Update, ball::systems::reflect_ball);
+    app.add_systems(Update, ball::systems::wall_collision_handler);
     app.update();
 
     let transform = app.world().get::<Transform>(entity).unwrap();

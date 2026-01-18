@@ -34,7 +34,8 @@ fn main() {
                 input::systems::grab_mouse,
                 (
                     paddle::systems::paddle_mouse_control,
-                    paddle::systems::record_paddle_motion,
+                    paddle::systems::initialize_paddle_motion,
+                    paddle::systems::finalize_paddle_motion,
                 )
                     .chain(),
                 playfield::systems::highlight_depth_lines,
@@ -48,11 +49,12 @@ fn main() {
                     physics::systems::apply_curve,
                     physics::systems::apply_velocity,
                     physics::systems::detect_collisions,
+                    physics::systems::reflect_sphere,
                 )
                     .chain(),
                 (
-                    paddle::systems::paddle_sphere_collision,
-                    ball::systems::reflect_ball,
+                    paddle::systems::apply_paddle_impact_modifiers,
+                    ball::systems::wall_collision_handler,
                     paddle::systems::apply_curve_from_motion_record,
                 )
                     .chain(),

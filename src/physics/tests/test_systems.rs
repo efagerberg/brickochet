@@ -96,3 +96,113 @@ fn test_apply_curve_modifies_velocity(case: ApplyCurveCase) {
         .unwrap();
     assert_eq!(velocity.0, case.expected_velocity);
 }
+
+struct DetectCollisionCase {
+    sphere_translation: Vec3,
+    sphere_radius: f32,
+    cuboid_translation: Vec3,
+    cuboid_half_extents: Vec3,
+    should_collide: bool,
+}
+
+#[test_case(
+    DetectCollisionCase {
+        sphere_translation: Vec3::new(0.0, 0.0, 0.0),
+        sphere_radius: 1.0,
+        cuboid_translation: Vec3::new(1.5, 0.0, 0.0),
+        cuboid_half_extents: Vec3::new(1.0, 1.0, 1.0),
+        should_collide: true,
+    }; "sphere collides with cuboid")]
+#[test_case(
+    DetectCollisionCase {
+        sphere_translation: Vec3::new(0.0, 0.0, 0.0),
+        sphere_radius: 1.0,
+        cuboid_translation: Vec3::new(3.0, 0.0, 0.0),
+        cuboid_half_extents: Vec3::new(1.0, 1.0, 1.0),
+        should_collide: false,
+    }; "sphere does not collide with cuboid")]
+fn test_detect_collisions(case: DetectCollisionCase) {
+    let mut app = App::new();
+    app.add_message::<physics::messages::CollisionMessage>();
+
+    let sphere_entity = app
+        .world_mut()
+        .spawn((
+            Transform::from_translation(case.sphere_translation),
+            physics::components::BoundingSphere {
+                radius: case.sphere_radius,
+            },
+        ))
+        .id();
+
+    let cuboid_entity = app
+        .world_mut()
+        .spawn((
+            Transform::from_translation(case.cuboid_translation),
+            physics::components::BoundingCuboid {
+                half_extents: case.cuboid_half_extents,
+            },
+        ))
+        .id();
+
+    app.add_systems(Update, physics::systems::detect_collisions);
+    app.update();
+
+    let collision_messages = app
+        .world()
+        .resource::<Messages<physics::messages::CollisionMessage>>();
+    let mut collision_cursor = collision_messages.get_cursor();
+    let collided = collision_cursor.read(collision_messages).any(|message| {
+        (message.a == sphere_entity && message.b == cuboid_entity)
+            || (message.a == cuboid_entity && message.b == sphere_entity)
+    });
+
+    assert_eq!(collided, case.should_collide);
+}
+
+struct ReflectSphereCase {
+    initial_velocity: Vec3,
+    expected_velocity: Vec3,
+}
+
+#[test_case(
+    ReflectSphereCase {
+        initial_velocity: Vec3::new(0.0, 0.0, -1.0),
+        expected_velocity: Vec3::new(0.0, 0.0, 1.0),
+    }; "reflects negative z velocity")]
+#[test_case(
+    ReflectSphereCase {
+        initial_velocity: Vec3::new(0.0, 0.0, 1.0),
+        expected_velocity: Vec3::new(0.0, 0.0, -1.0),
+    }; "reflects positive z velocity")]
+fn test_reflect_sphere(case: ReflectSphereCase) {
+    let mut app = App::new();
+    app.add_message::<physics::messages::CollisionMessage>();
+
+    let sphere_entity = app
+        .world_mut()
+        .spawn((
+            physics::components::Velocity(case.initial_velocity),
+            physics::components::BoundingSphere { radius: 1.0 },
+        ))
+        .id();
+
+    let cuboid_entity = app.world_mut().spawn_empty().id();
+    let collision_message = physics::messages::CollisionMessage {
+        a: sphere_entity,
+        b: cuboid_entity,
+    };
+    let mut messages = app
+        .world_mut()
+        .resource_mut::<Messages<physics::messages::CollisionMessage>>();
+    messages.write(collision_message);
+
+    app.add_systems(Update, physics::systems::reflect_sphere);
+    app.update();
+
+    let velocity = app
+        .world()
+        .get::<physics::components::Velocity>(sphere_entity)
+        .unwrap();
+    assert_eq!(velocity.0, case.expected_velocity);
+}
