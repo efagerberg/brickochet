@@ -7,98 +7,36 @@ pub fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let playfield = spawn_playfield(&mut commands, &mut meshes, &mut materials);
-    setup_camera(&mut commands, &playfield);
+    let playfield_half_size = Vec3::new(10.0, 5.0, 20.0);
+    spawn_playfield(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        playfield_half_size,
+    );
+    setup_camera(&mut commands, playfield_half_size);
     setup_lighting(&mut commands);
-    spawn_paddle(&mut commands, &mut meshes, &mut materials, &playfield);
+    spawn_paddle(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        playfield_half_size,
+    );
     spawn_ball(&mut commands, &mut meshes, &mut materials);
-}
-
-fn setup_camera(commands: &mut Commands, playfield: &playfield::resources::Playfield) {
-    commands.spawn((
-        Camera3d::default(),
-        Name::new("Camera"),
-        Camera {
-            clear_color: ClearColorConfig::Custom(Color::BLACK),
-            ..default()
-        },
-        core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
-        post_process::bloom::Bloom {
-            intensity: 0.05,
-            ..default()
-        },
-        core_pipeline::tonemapping::DebandDither::Enabled,
-        Projection::Perspective(PerspectiveProjection {
-            fov: std::f32::consts::FRAC_PI_3, // ~60°
-            near: 0.1,
-            far: 200.0,
-            ..default()
-        }),
-        Transform::from_xyz(0.0, 0.0, playfield.half_depth + 9.0)
-            .looking_at(Vec3::new(0.0, 0.0, -playfield.half_depth), Vec3::Y),
-    ));
-}
-
-fn spawn_paddle(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-    playfield: &playfield::resources::Playfield,
-) {
-    let paddle_size = paddle::components::PaddleSize {
-        half_width: 2.0,
-        half_height: 1.0,
-        contact_depth: 0.1,
-    };
-    commands.spawn((
-        paddle::components::Paddle,
-        Name::new("Paddle"),
-        paddle_size,
-        paddle::components::PaddleMotionRecord::default(),
-        paddle::components::PaddleImpactModifiers::starting(),
-        Transform::from_xyz(0.0, 0.0, playfield.half_depth - 4.0),
-        GlobalTransform::default(),
-        Mesh3d(meshes.add(Cuboid::new(
-            paddle_size.half_width * 2.0,
-            paddle_size.half_height * 2.0,
-            paddle_size.contact_depth * 2.0,
-        ))),
-        MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
-    ));
-}
-
-fn spawn_ball(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<StandardMaterial>>,
-) {
-    let ball_modifiers = ball::components::BallModifiers::starting();
-    commands.spawn((
-        ball_modifiers.clone(),
-        Name::new("Ball"),
-        physics::components::Curve::default(),
-        physics::components::Velocity(ball_modifiers.base_velocity),
-        Transform::default(),
-        GlobalTransform::default(),
-        Mesh3d(meshes.add(Sphere::new(ball_modifiers.radius))),
-        MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
-    ));
 }
 
 fn spawn_playfield(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    half_size: Vec3,
 ) -> playfield::resources::Playfield {
-    let half_width = 10.0;
-    let half_height = 5.0;
-    let half_depth = 20.0;
-
     let wall_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
+    let clear_wall_material = materials.add(Color::srgba(0.0, 0.0, 0.0, 0.0));
 
     let num_lines = 10;
     let line_thickness = 0.25;
-    let line_spacing = (half_depth * 2.0) / (num_lines as f32);
+    let line_spacing = (half_size.z * 2.0) / (num_lines as f32);
 
     let mut children = vec![];
 
@@ -106,16 +44,12 @@ fn spawn_playfield(
     let line_highlight_color = LinearRgba::rgb(0.0, 0.4, 0.2);
 
     for i in 0..num_lines {
-        let z = -half_depth + i as f32 * line_spacing;
+        let z = -half_size.z + i as f32 * line_spacing;
         let line_material = materials.add(StandardMaterial {
             emissive: line_default_color,
             ..default()
         });
-        let mesh = meshes.add(build_depth_lines_mesh(
-            half_width,
-            half_height,
-            line_thickness,
-        ));
+        let mesh = meshes.add(build_depth_lines_mesh(half_size, line_thickness));
 
         children.push(
             commands
@@ -134,11 +68,9 @@ fn spawn_playfield(
     spawn_playfield_walls(
         commands,
         meshes,
-        wall_material.clone(),
+        (wall_material.clone(), clear_wall_material.clone()),
         &mut children,
-        half_width,
-        half_height,
-        half_depth,
+        half_size,
         0.1,
     );
 
@@ -154,9 +86,6 @@ fn spawn_playfield(
     }
 
     let playfield = playfield::resources::Playfield {
-        half_width,
-        half_height,
-        half_depth,
         wall_line_default_color: line_default_color,
         wall_line_highlight_color: line_highlight_color,
     };
@@ -164,18 +93,7 @@ fn spawn_playfield(
     playfield
 }
 
-fn setup_lighting(commands: &mut Commands) {
-    commands.spawn((
-        DirectionalLight {
-            illuminance: 1000.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_rotation_x(-0.7)),
-    ));
-}
-
-fn build_depth_lines_mesh(half_width: f32, half_height: f32, line_thickness: f32) -> Mesh {
+fn build_depth_lines_mesh(half_size: Vec3, line_thickness: f32) -> Mesh {
     let mut mesh = Mesh::new(
         mesh::PrimitiveTopology::TriangleList,
         asset::RenderAssetUsages::MAIN_WORLD | asset::RenderAssetUsages::RENDER_WORLD,
@@ -207,10 +125,10 @@ fn build_depth_lines_mesh(half_width: f32, half_height: f32, line_thickness: f32
 
     for (length, offset_axis, rotation) in [
         // Lines running along X (floor & ceiling)
-        (half_width * 2.0, Vec3::Y, Mat4::IDENTITY),
+        (half_size.x * 2.0, Vec3::Y, Mat4::IDENTITY),
         // Lines running along Y (left & right walls)
         (
-            half_height * 2.0,
+            half_size.y * 2.0,
             Vec3::X,
             Mat4::from_rotation_z(std::f32::consts::FRAC_PI_2),
         ),
@@ -218,8 +136,8 @@ fn build_depth_lines_mesh(half_width: f32, half_height: f32, line_thickness: f32
         // Two sides per orientation
         for side in [-1.0, 1.0] {
             let offset = match offset_axis {
-                Vec3::Y => Vec3::Y * side * half_height,
-                Vec3::X => Vec3::X * side * half_width,
+                Vec3::Y => Vec3::Y * side * half_size.y,
+                Vec3::X => Vec3::X * side * half_size.x,
                 _ => Vec3::ZERO,
             };
 
@@ -239,61 +157,172 @@ fn build_depth_lines_mesh(half_width: f32, half_height: f32, line_thickness: f32
 fn spawn_playfield_walls(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
-    wall_material: Handle<StandardMaterial>,
+    wall_materials: (Handle<StandardMaterial>, Handle<StandardMaterial>),
     children: &mut Vec<Entity>,
-    half_width: f32,
-    half_height: f32,
-    half_depth: f32,
+    playfield_half_size: Vec3,
     wall_thickness: f32,
 ) {
-    // For each axis: 0=X, 1=Y, 2=Z
+    let (solid_wall_material, clear_wall_material) = wall_materials;
+    // axis 0 = X, 1 = Y, 2 = Z
     for (axis, size) in [
+        // X walls (left/right)
         (
             0,
-            Vec3::new(2.0 * half_width, 2.0 * half_height, wall_thickness),
-        ), // Z walls
+            Vec3::new(
+                wall_thickness,
+                2.0 * playfield_half_size.y,
+                2.0 * playfield_half_size.z,
+            ),
+        ),
+        // Y walls (floor/ceiling)
         (
             1,
-            Vec3::new(2.0 * half_width, wall_thickness, 2.0 * half_depth),
-        ), // Y walls
+            Vec3::new(
+                2.0 * playfield_half_size.x,
+                wall_thickness,
+                2.0 * playfield_half_size.z,
+            ),
+        ),
+        // Z walls (back/front)
         (
             2,
-            Vec3::new(wall_thickness, 2.0 * half_height, 2.0 * half_depth),
-        ), // X walls
+            Vec3::new(
+                2.0 * playfield_half_size.x,
+                2.0 * playfield_half_size.y,
+                wall_thickness,
+            ),
+        ),
     ] {
         // For each side: -1 or +1
         for &side in &[-1.0, 1.0] {
-            // Skip front wall (Z axis, side +1)
-            if axis == 0 && side > 0.0 {
-                continue;
-            }
-
             let translation = match axis {
-                0 => Vec3::new(0.0, 0.0, side * half_depth), // back/front
-                1 => Vec3::new(0.0, side * half_height, 0.0), // floor/ceiling
-                2 => Vec3::new(side * half_width, 0.0, 0.0), // left/right
+                0 => Vec3::new(side * playfield_half_size.x, 0.0, 0.0),
+                1 => Vec3::new(0.0, side * playfield_half_size.y, 0.0),
+                2 => Vec3::new(0.0, 0.0, side * playfield_half_size.z),
                 _ => Vec3::ZERO,
             };
 
             let name = match (axis, side) {
-                (0, -1.0) => "Back Wall",
+                (0, -1.0) => "Left",
+                (0, 1.0) => "Right",
                 (1, -1.0) => "Floor",
                 (1, 1.0) => "Ceiling",
-                (2, -1.0) => "Left Wall",
-                (2, 1.0) => "Right Wall",
+                (2, -1.0) => "Near",
+                (2, 1.0) => "Far",
                 _ => "Wall",
             };
+            let goal = match (axis, side) {
+                (2, -1.0) => Some(playfield::components::Goal::Enemy),
+                (2, 1.0) => Some(playfield::components::Goal::Player),
+                _ => None,
+            };
 
-            children.push(
-                commands
-                    .spawn((
-                        Name::new(name),
-                        Mesh3d(meshes.add(Cuboid::new(size.x, size.y, size.z))),
-                        MeshMaterial3d(wall_material.clone()),
-                        Transform::from_translation(translation),
-                    ))
-                    .id(),
-            );
+            let material = if (axis, side) == (2, 1.0) {
+                &clear_wall_material
+            } else {
+                &solid_wall_material
+            };
+
+            let wall_entity = commands
+                .spawn((
+                    Name::new(name),
+                    Mesh3d(meshes.add(Cuboid::new(size.x, size.y, size.z))),
+                    MeshMaterial3d(material.clone()),
+                    Transform::from_translation(translation),
+                    physics::components::BoundingCuboid {
+                        half_extents: size / 2.0,
+                    },
+                ))
+                .id();
+
+            if let Some(goal) = goal {
+                commands.entity(wall_entity).insert(goal);
+            }
+            children.push(wall_entity);
         }
     }
+}
+
+fn setup_camera(commands: &mut Commands, playfield_half_size: Vec3) {
+    commands.spawn((
+        Camera3d::default(),
+        Name::new("Camera"),
+        Camera {
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
+            ..default()
+        },
+        core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
+        post_process::bloom::Bloom {
+            intensity: 0.05,
+            ..default()
+        },
+        core_pipeline::tonemapping::DebandDither::Enabled,
+        Projection::Perspective(PerspectiveProjection {
+            fov: std::f32::consts::FRAC_PI_3, // ~60°
+            near: 0.1,
+            far: 200.0,
+            ..default()
+        }),
+        Transform::from_xyz(0.0, 0.0, playfield_half_size.z + 9.0)
+            .looking_at(Vec3::new(0.0, 0.0, -playfield_half_size.z), Vec3::Y),
+    ));
+}
+
+fn spawn_paddle(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    playfield_half_size: Vec3,
+) {
+    let bounds = physics::components::BoundingCuboid {
+        half_extents: Vec3::new(2.0, 1.0, 0.1),
+    };
+    let cuboid_dimensions = bounds.half_extents * 2.0;
+    commands.spawn((
+        paddle::components::Paddle,
+        Name::new("Paddle"),
+        bounds,
+        paddle::components::PaddleMotionRecord::default(),
+        paddle::components::PaddleImpactModifiers::starting(),
+        Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 4.0),
+        GlobalTransform::default(),
+        Mesh3d(meshes.add(Cuboid::new(
+            cuboid_dimensions.x,
+            cuboid_dimensions.y,
+            cuboid_dimensions.z,
+        ))),
+        MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
+    ));
+}
+
+fn spawn_ball(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) {
+    let ball_modifiers = ball::components::BallModifiers::starting();
+    commands.spawn((
+        ball_modifiers.clone(),
+        Name::new("Ball"),
+        physics::components::Curve::default(),
+        physics::components::Velocity(ball_modifiers.base_velocity),
+        physics::components::BoundingSphere {
+            radius: ball_modifiers.base_radius,
+        },
+        Transform::default(),
+        GlobalTransform::default(),
+        Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
+        MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
+    ));
+}
+
+fn setup_lighting(commands: &mut Commands) {
+    commands.spawn((
+        DirectionalLight {
+            illuminance: 1000.0,
+            shadows_enabled: false,
+            ..default()
+        },
+        Transform::from_rotation(Quat::from_rotation_x(-0.7)),
+    ));
 }

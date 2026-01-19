@@ -9,12 +9,14 @@ const PADDLE_HALF: f32 = 1.0;
 
 fn base_app() -> App {
     let mut app = App::new();
-    app.insert_resource(playfield::resources::Playfield {
-        half_width: PLAYFIELD_HALF,
-        half_height: PLAYFIELD_HALF,
-        ..default()
-    });
     app.add_message::<bevy::input::mouse::MouseMotion>();
+
+    app.world_mut().spawn((
+        playfield::components::Goal::Enemy,
+        physics::components::BoundingCuboid {
+            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.5),
+        },
+    ));
     app
 }
 
@@ -76,10 +78,8 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         .world_mut()
         .spawn((
             paddle::components::Paddle,
-            paddle::components::PaddleSize {
-                half_width: PADDLE_HALF,
-                half_height: PADDLE_HALF,
-                contact_depth: 0.5,
+            physics::components::BoundingCuboid {
+                half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5),
             },
             Transform {
                 translation: case.starting_position,
@@ -88,11 +88,11 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         ))
         .id();
 
-    let mut events = app
+    let mut messages = app
         .world_mut()
         .resource_mut::<Messages<bevy::input::mouse::MouseMotion>>();
     for delta in case.motion_deltas {
-        events.write(bevy::input::mouse::MouseMotion { delta });
+        messages.write(bevy::input::mouse::MouseMotion { delta });
     }
 
     app.update();
@@ -101,123 +101,214 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
     assert_eq!(transform.translation, case.expected_position);
 }
 
-struct PaddleBallCollisionCase {
-    ball_position: Vec3,
-    paddle_position: Vec3,
+enum PaddleImpactModifierSetupScenario {
+    Collision,
+    NoCollision,
+    CollisionForMissingEntities,
+}
+
+struct ApplyPaddleImpactModifierCase {
+    scenario: PaddleImpactModifierSetupScenario,
+    z_speed_delta: f32,
     initial_velocity: Vec3,
     expected_z_velocity: f32,
 }
 
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    ApplyPaddleImpactModifierCase {
+        scenario: PaddleImpactModifierSetupScenario::Collision,
+        z_speed_delta: 0.5,
         initial_velocity: Vec3::new(0.0, 0.0, 5.0),
+        expected_z_velocity: 5.5,
+    }
+    ; "positive velocity increases"
+)]
+#[test_case(
+    ApplyPaddleImpactModifierCase {
+        scenario: PaddleImpactModifierSetupScenario::Collision,
+        z_speed_delta: 0.5,
+        initial_velocity: Vec3::new(0.0, 0.0, -5.0),
         expected_z_velocity: -5.5,
     }
-    ; "valid collision"
+    ; "negative velocity increases"
 )]
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(2.0, 0.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    ApplyPaddleImpactModifierCase {
+        scenario: PaddleImpactModifierSetupScenario::Collision,
+        z_speed_delta: -0.5,
         initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0,
+        expected_z_velocity: 4.5,
     }
-    ; "miss on x axis"
+    ; "positive velocity decreases"
 )]
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -5.0),
-        paddle_position: Vec3::ZERO,
-        initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0,
-    }
-    ; "miss z band"
-)]
-#[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    ApplyPaddleImpactModifierCase {
+        scenario: PaddleImpactModifierSetupScenario::Collision,
+        z_speed_delta: -0.5,
         initial_velocity: Vec3::new(0.0, 0.0, -5.0),
-        expected_z_velocity: -5.0,
+        expected_z_velocity: -4.5,
     }
-    ; "moving away"
+    ; "negative velocity decreases"
 )]
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 2.0, -0.5),
-        paddle_position: Vec3::ZERO,
+    ApplyPaddleImpactModifierCase {
+        scenario: PaddleImpactModifierSetupScenario::NoCollision,
+        z_speed_delta: 1.0,
         initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0, // no collision
+        expected_z_velocity: 5.0,
     }
-    ; "miss on y axis"
+    ; "no change"
 )]
 #[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, -5.0),
-        paddle_position: Vec3::ZERO,
+    ApplyPaddleImpactModifierCase {
+        scenario: PaddleImpactModifierSetupScenario::CollisionForMissingEntities,
+        z_speed_delta: 1.0,
         initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0, // no collision
+        expected_z_velocity: 5.0,
     }
-    ; "z below min"
+    ; "message does not refer to paddle or sphere entities"
 )]
-#[test_case(
-    PaddleBallCollisionCase {
-        ball_position: Vec3::new(0.0, 0.0, 5.0),
-        paddle_position: Vec3::ZERO,
-        initial_velocity: Vec3::new(0.0, 0.0, 5.0),
-        expected_z_velocity: 5.0, // no collision
-    }
-    ; "z above max"
-)]
-fn test_paddle_ball_collision(case: PaddleBallCollisionCase) {
+fn test_apply_paddle_impact_modifiers(case: ApplyPaddleImpactModifierCase) {
     let mut app = App::new();
-    app.add_systems(Update, paddle::systems::paddle_ball_collision);
+    app.add_message::<physics::messages::CollisionMessage>();
+    app.add_systems(Update, paddle::systems::apply_paddle_impact_modifiers);
     let time: Time = Time::default();
     app.insert_resource(time);
 
-    let ball_entity = app
+    let sphere_entity = app
         .world_mut()
         .spawn((
-            ball::components::BallModifiers::starting(),
-            Transform {
-                translation: case.ball_position,
-                ..default()
-            },
             physics::components::Velocity(case.initial_velocity),
+            physics::components::BoundingSphere::default(),
         ))
         .id();
 
-    app.world_mut().spawn((
-        paddle::components::Paddle,
-        paddle::components::PaddleSize {
-            half_width: PADDLE_HALF,
-            half_height: PADDLE_HALF,
-            contact_depth: 1.0,
-        },
-        paddle::components::PaddleImpactModifiers {
-            contact_z_speed_increase: 0.5,
-            ..default()
-        },
-        paddle::components::PaddleMotionRecord::default(),
-        Transform {
-            translation: case.paddle_position,
-            ..default()
-        },
-    ));
+    let paddle_entity = app
+        .world_mut()
+        .spawn((
+            paddle::components::Paddle,
+            paddle::components::PaddleImpactModifiers {
+                z_speed_delta: case.z_speed_delta,
+                ..default()
+            },
+        ))
+        .id();
+
+    match case.scenario {
+        PaddleImpactModifierSetupScenario::Collision => {
+            app.world_mut()
+                .resource_mut::<Messages<physics::messages::CollisionMessage>>()
+                .write(physics::messages::CollisionMessage {
+                    a: sphere_entity,
+                    b: paddle_entity,
+                    normal: Vec3::default(),
+                    contact_point: Vec3::default(),
+                    penetration: 0.0,
+                });
+        }
+        PaddleImpactModifierSetupScenario::NoCollision => (),
+        PaddleImpactModifierSetupScenario::CollisionForMissingEntities => {
+            let non_sphere = app.world_mut().spawn_empty().id();
+            let non_paddle = app.world_mut().spawn_empty().id();
+            app.world_mut()
+                .resource_mut::<Messages<physics::messages::CollisionMessage>>()
+                .write(physics::messages::CollisionMessage {
+                    a: non_sphere,
+                    b: non_paddle,
+                    normal: Vec3::default(),
+                    contact_point: Vec3::default(),
+                    penetration: 0.0,
+                });
+        }
+    }
 
     app.update();
 
     let velocity = app
         .world()
-        .get::<physics::components::Velocity>(ball_entity)
+        .get::<physics::components::Velocity>(sphere_entity)
         .unwrap();
 
     assert_eq!(velocity.0.z, case.expected_z_velocity);
 }
 
-struct RecordPaddleMotionCase {
+struct InitializePaddleMotionCase {
+    start_pos: Vec2,
+    pending: bool,
+    expected_start_pos: Vec2,
+    expected_start_time: f32,
+    expected_pending: bool,
+}
+
+#[test_case(
+    InitializePaddleMotionCase {
+        start_pos: Vec2::ZERO,
+        pending: false,
+        expected_start_pos: Vec2::ZERO,
+        expected_start_time: 0.0,
+        expected_pending: true,
+    }
+    ; "initializes motion record"
+)]
+#[test_case(
+    InitializePaddleMotionCase {
+        start_pos: Vec2::new(1.0, 1.0),
+        pending: false,
+        expected_start_pos: Vec2::new(1.0, 1.0),
+        expected_start_time: 0.0,
+        expected_pending: true,
+    }
+    ; "initializes motion record with non-zero position"
+)]
+fn test_initialize_paddle_motion(case: InitializePaddleMotionCase) {
+    let mut app = App::new();
+    app.add_message::<physics::messages::CollisionMessage>();
+    app.add_systems(Update, paddle::systems::initialize_paddle_motion);
+    let time: Time = Time::default();
+    app.insert_resource(time.clone());
+
+    let paddle_entity = app
+        .world_mut()
+        .spawn((
+            paddle::components::Paddle,
+            Transform {
+                translation: Vec3::new(case.start_pos.x, case.start_pos.y, 0.0),
+                ..default()
+            },
+            paddle::components::PaddleMotionRecord {
+                start_pos: Vec2::ZERO,
+                start_time: 0.0,
+                pending: case.pending,
+                ..default()
+            },
+        ))
+        .id();
+
+    let sphere_entity = app.world_mut().spawn_empty().id();
+
+    app.world_mut()
+        .resource_mut::<Messages<physics::messages::CollisionMessage>>()
+        .write(physics::messages::CollisionMessage {
+            a: sphere_entity,
+            b: paddle_entity,
+            normal: Vec3::default(),
+            contact_point: Vec3::default(),
+            penetration: 0.0,
+        });
+
+    app.update();
+
+    let record = app
+        .world()
+        .get::<paddle::components::PaddleMotionRecord>(paddle_entity)
+        .unwrap();
+
+    assert_eq!(record.start_pos, case.expected_start_pos);
+    assert_eq!(record.start_time, case.expected_start_time);
+    assert_eq!(record.pending, case.expected_pending);
+}
+
+struct FinalizePaddleMotionCase {
     start_pos: Vec2,
     start_time: f32,
     pending: bool,
@@ -228,19 +319,19 @@ struct RecordPaddleMotionCase {
 }
 
 #[test_case(
-    RecordPaddleMotionCase {
+    FinalizePaddleMotionCase {
         start_pos: Vec2::ZERO,
         start_time: 0.0,
         pending: true,
         current_pos: Vec3::new(2.0, 1.0, 0.0),
         advance_time: 0.31,
-        expected_delta: Vec2::new(2.0, 1.0),
+        expected_delta: Vec2::new(0.02, 0.02),
         expected_pending: false,
     }
-    ; "computes delta after threshold"
+    ; "computes normalized delta after threshold"
 )]
 #[test_case(
-    RecordPaddleMotionCase {
+    FinalizePaddleMotionCase {
         start_pos: Vec2::ZERO,
         start_time: 0.0,
         pending: true,
@@ -252,7 +343,7 @@ struct RecordPaddleMotionCase {
     ; "does nothing before threshold"
 )]
 #[test_case(
-    RecordPaddleMotionCase {
+    FinalizePaddleMotionCase {
         start_pos: Vec2::ZERO,
         start_time: 0.0,
         pending: false,
@@ -263,9 +354,15 @@ struct RecordPaddleMotionCase {
     }
     ; "pending false does not update delta"
 )]
-fn test_record_paddle_motion(case: RecordPaddleMotionCase) {
+fn test_finalize_paddle_motion(case: FinalizePaddleMotionCase) {
     let mut app = App::new();
-    app.add_systems(Update, paddle::systems::record_paddle_motion);
+
+    app.world_mut().spawn(Window {
+        resolution: (100, 50).into(),
+        ..default()
+    });
+
+    app.add_systems(Update, paddle::systems::finalize_paddle_motion);
 
     let mut time: Time = Time::default();
     app.insert_resource(time.clone());
@@ -349,9 +446,17 @@ struct ApplyCurveCase {
 )]
 #[test_case(
     ApplyCurveCase {
+        motion_delta: Vec2::ZERO,
+        pending: false,
+        expected_curve: Vec2::ZERO,
+    }
+    ; "zero delta record does nothing"
+)]
+#[test_case(
+    ApplyCurveCase {
         motion_delta: Vec2::new(-5.0, -5.0),
         pending: false,
-        expected_curve: Vec2::new(3.0, 3.0), // super curve negative
+        expected_curve: Vec2::new(3.0, 3.0),
     }
     ; "super curve negative"
 )]
@@ -359,7 +464,7 @@ struct ApplyCurveCase {
     ApplyCurveCase {
         motion_delta: Vec2::new(-2.0, -2.0),
         pending: false,
-        expected_curve: Vec2::new(1.0, 1.0), // normal curve negative
+        expected_curve: Vec2::new(1.0, 1.0),
     }
     ; "normal curve negative"
 )]
@@ -367,7 +472,7 @@ struct ApplyCurveCase {
     ApplyCurveCase {
         motion_delta: Vec2::new(2.0, 2.0),
         pending: false,
-        expected_curve: Vec2::new(-1.0, -1.0), // normal curve positive
+        expected_curve: Vec2::new(-1.0, -1.0),
     }
     ; "normal curve positive"
 )]
@@ -375,7 +480,7 @@ struct ApplyCurveCase {
     ApplyCurveCase {
         motion_delta: Vec2::new(5.0, 5.0),
         pending: false,
-        expected_curve: Vec2::new(-3.0, -3.0), // super curve positive
+        expected_curve: Vec2::new(-3.0, -3.0),
     }
     ; "super curve positive"
 )]
@@ -383,7 +488,7 @@ fn test_apply_curve_from_motion_record(case: ApplyCurveCase) {
     let mut app = App::new();
     app.add_systems(Update, paddle::systems::apply_curve_from_motion_record);
 
-    let ball_entity = app
+    let sphere_entity = app
         .world_mut()
         .spawn((
             ball::components::BallModifiers::starting(),
@@ -398,7 +503,7 @@ fn test_apply_curve_from_motion_record(case: ApplyCurveCase) {
             super_curve_scale: 3.0,
             normal_curve_position_delta_threshold: 1.0,
             super_curve_position_delta_threshold: 4.0,
-            contact_z_speed_increase: 0.0,
+            z_speed_delta: 0.0,
         },
         paddle::components::PaddleMotionRecord {
             delta: case.motion_delta,
@@ -411,7 +516,7 @@ fn test_apply_curve_from_motion_record(case: ApplyCurveCase) {
 
     let curve = app
         .world()
-        .get::<physics::components::Curve>(ball_entity)
+        .get::<physics::components::Curve>(sphere_entity)
         .unwrap();
 
     assert_eq!(curve.0, case.expected_curve);

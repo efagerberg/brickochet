@@ -26,6 +26,7 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
+        .add_message::<physics::messages::CollisionMessage>()
         .add_systems(Startup, scene::setup)
         .add_systems(
             Update,
@@ -33,7 +34,8 @@ fn main() {
                 input::systems::grab_mouse,
                 (
                     paddle::systems::paddle_mouse_control,
-                    paddle::systems::record_paddle_motion,
+                    paddle::systems::initialize_paddle_motion,
+                    paddle::systems::finalize_paddle_motion,
                 )
                     .chain(),
                 playfield::systems::highlight_depth_lines,
@@ -46,11 +48,13 @@ fn main() {
                 (
                     physics::systems::apply_curve,
                     physics::systems::apply_velocity,
+                    physics::systems::detect_collisions,
+                    physics::systems::resolve_sphere_aabb_collision,
                 )
                     .chain(),
                 (
-                    paddle::systems::paddle_ball_collision,
-                    ball::systems::reflect_ball,
+                    paddle::systems::apply_paddle_impact_modifiers,
+                    playfield::systems::wall_collision_handler,
                     paddle::systems::apply_curve_from_motion_record,
                 )
                     .chain(),
