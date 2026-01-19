@@ -9,13 +9,14 @@ const PADDLE_HALF: f32 = 1.0;
 
 fn base_app() -> App {
     let mut app = App::new();
-    app.insert_resource(playfield::resources::Playfield {
-        bounds: physics::components::BoundingCuboid {
-            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.1),
-        },
-        ..default()
-    });
     app.add_message::<bevy::input::mouse::MouseMotion>();
+
+    app.world_mut().spawn((
+        playfield::components::Goal::Enemy,
+        physics::components::BoundingCuboid {
+            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.5),
+        },
+    ));
     app
 }
 

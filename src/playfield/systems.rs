@@ -1,4 +1,4 @@
-use crate::{physics, playfield, rendering};
+use crate::{ball, physics, playfield, rendering};
 use bevy::prelude::*;
 
 pub fn highlight_depth_lines(
@@ -30,5 +30,41 @@ pub fn highlight_depth_lines(
             continue;
         }
         material_color.emissive.replace(new_color);
+    }
+}
+
+pub fn wall_collision_handler(
+    mut messages: MessageReader<physics::messages::CollisionMessage>,
+    mut sphere_query: Query<
+        (
+            &ball::components::BallModifiers,
+            &mut Transform,
+            &mut physics::components::Velocity,
+            &mut physics::components::Curve,
+        ),
+        With<physics::components::BoundingSphere>,
+    >,
+    goal_query: Query<&playfield::components::Goal, With<physics::components::BoundingCuboid>>,
+) {
+    for message in messages.read() {
+        let (Ok((ball_modifiers, mut ball_transform, mut ball_velocity, mut curve)), Ok(goal)) =
+            (sphere_query.get_mut(message.a), goal_query.get(message.b))
+        else {
+            continue;
+        };
+
+        match goal {
+            playfield::components::Goal::Player => {
+                ball_transform.translation = Vec3::default();
+                ball_velocity.0 = ball_modifiers.base_velocity;
+                curve.0 = Vec2::ZERO;
+            }
+            playfield::components::Goal::Enemy => {
+                // For now clear curve on ball wall. In Curveball the ball spin is set when
+                // the enemy AI hits the ball, this tries to mimic that feel. Probably when
+                // bricks are added, they will do the same.
+                curve.0 = Vec2::ZERO;
+            }
+        }
     }
 }

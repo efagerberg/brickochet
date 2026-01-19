@@ -6,7 +6,10 @@ pub fn sphere_aabb_intersects(
     aabb_position: Vec3,
     aabb_half_extents: Vec3,
 ) -> bool {
-    let closest = sphere_position.clamp(aabb_position - aabb_half_extents, aabb_position + aabb_half_extents);
+    let closest = sphere_position.clamp(
+        aabb_position - aabb_half_extents,
+        aabb_position + aabb_half_extents,
+    );
 
     sphere_position.distance_squared(closest) <= radius * radius
 }
@@ -36,11 +39,7 @@ pub fn sphere_aabb_contact_normal(
     }
 }
 
-pub fn closest_point_on_aabb(
-    point: Vec3,
-    aabb_center: Vec3,
-    half_extents: Vec3,
-) -> Vec3 {
+pub fn closest_point_on_aabb(point: Vec3, aabb_center: Vec3, half_extents: Vec3) -> Vec3 {
     let min = aabb_center - half_extents;
     let max = aabb_center + half_extents;
 

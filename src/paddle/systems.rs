@@ -7,7 +7,10 @@ pub fn paddle_mouse_control(
         (&mut Transform, &physics::components::BoundingCuboid),
         With<paddle::components::Paddle>,
     >,
-    playfield: Res<playfield::resources::Playfield>,
+    goal_query: Query<(
+        &playfield::components::Goal,
+        &physics::components::BoundingCuboid,
+    )>,
 ) {
     let mut delta = Vec2::ZERO;
 
@@ -19,17 +22,23 @@ pub fn paddle_mouse_control(
         return;
     }
 
-    let (mut paddle_transform, bounds) = paddle_single.into_inner();
+    let (mut paddle_transform, paddle_bounds) = paddle_single.into_inner();
 
-    let sensitivity = 0.025;
-    let new_velocity = delta * sensitivity;
-    let x_abs_limit = playfield.bounds.half_extents.x - bounds.half_extents.x;
-    let y_abs_limit = playfield.bounds.half_extents.y - bounds.half_extents.y;
+    let enemy_goal = goal_query
+        .iter()
+        .find(|(goal, _)| **goal == playfield::components::Goal::Enemy);
 
-    paddle_transform.translation.x =
-        (paddle_transform.translation.x + new_velocity.x).clamp(-x_abs_limit, x_abs_limit);
-    paddle_transform.translation.y =
-        (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
+    if let Some((_, bounds)) = enemy_goal {
+        let sensitivity = 0.025;
+        let new_velocity = delta * sensitivity;
+        let x_abs_limit = bounds.half_extents.x - paddle_bounds.half_extents.x;
+        let y_abs_limit = bounds.half_extents.y - paddle_bounds.half_extents.y;
+
+        paddle_transform.translation.x =
+            (paddle_transform.translation.x + new_velocity.x).clamp(-x_abs_limit, x_abs_limit);
+        paddle_transform.translation.y =
+            (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
+    }
 }
 
 pub fn apply_paddle_impact_modifiers(

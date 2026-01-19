@@ -192,11 +192,12 @@ fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
         ))
         .id();
 
-    let cuboid_entity = app.world_mut().spawn((
-        physics::components::BoundingCuboid {
+    let cuboid_entity = app
+        .world_mut()
+        .spawn((physics::components::BoundingCuboid {
             half_extents: Vec3::new(1.0, 1.0, 1.0),
-        },
-    )).id();
+        },))
+        .id();
     let collision_message = physics::messages::CollisionMessage {
         a: sphere_entity,
         b: cuboid_entity,

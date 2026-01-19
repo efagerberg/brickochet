@@ -54,7 +54,7 @@ fn main() {
                     .chain(),
                 (
                     paddle::systems::apply_paddle_impact_modifiers,
-                    ball::systems::wall_collision_handler,
+                    playfield::systems::wall_collision_handler,
                     paddle::systems::apply_curve_from_motion_record,
                 )
                     .chain(),
