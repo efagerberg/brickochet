@@ -49,7 +49,7 @@ fn main() {
                     physics::systems::apply_curve,
                     physics::systems::apply_velocity,
                     physics::systems::detect_collisions,
-                    physics::systems::reflect_sphere,
+                    physics::systems::resolve_sphere_aabb_collision,
                 )
                     .chain(),
                 (

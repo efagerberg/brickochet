@@ -157,16 +157,18 @@ fn spawn_playfield_walls(
     bounds: &physics::components::BoundingCuboid,
     wall_thickness: f32,
 ) {
-    // For each axis: 0=X, 1=Y, 2=Z
+    // axis 0 = X, 1 = Y, 2 = Z
     for (axis, size) in [
+        // X walls (left/right)
         (
             0,
             Vec3::new(
-                2.0 * bounds.half_extents.x,
-                2.0 * bounds.half_extents.y,
                 wall_thickness,
+                2.0 * bounds.half_extents.y,
+                2.0 * bounds.half_extents.z,
             ),
-        ), // Z walls
+        ),
+        // Y walls (floor/ceiling)
         (
             1,
             Vec3::new(
@@ -174,36 +176,37 @@ fn spawn_playfield_walls(
                 wall_thickness,
                 2.0 * bounds.half_extents.z,
             ),
-        ), // Y walls
+        ),
+        // Z walls (back/front)
         (
             2,
             Vec3::new(
-                wall_thickness,
+                2.0 * bounds.half_extents.x,
                 2.0 * bounds.half_extents.y,
-                2.0 * bounds.half_extents.z,
+                wall_thickness,
             ),
-        ), // X walls
+        ),
     ] {
         // For each side: -1 or +1
         for &side in &[-1.0, 1.0] {
             // Skip front wall (Z axis, side +1)
-            if axis == 0 && side > 0.0 {
+            if axis == 2 && side > 0.0 {
                 continue;
             }
 
             let translation = match axis {
-                0 => Vec3::new(0.0, 0.0, side * bounds.half_extents.z), // back/front
-                1 => Vec3::new(0.0, side * bounds.half_extents.y, 0.0), // floor/ceiling
-                2 => Vec3::new(side * bounds.half_extents.x, 0.0, 0.0), // left/right
+                0 => Vec3::new(side * bounds.half_extents.x, 0.0, 0.0),
+                1 => Vec3::new(0.0, side * bounds.half_extents.y, 0.0),
+                2 => Vec3::new(0.0, 0.0, side * bounds.half_extents.z),
                 _ => Vec3::ZERO,
             };
 
             let name = match (axis, side) {
-                (0, -1.0) => "Back Wall",
+                (0, -1.0) => "Back",
                 (1, -1.0) => "Floor",
                 (1, 1.0) => "Ceiling",
-                (2, -1.0) => "Left Wall",
-                (2, 1.0) => "Right Wall",
+                (2, -1.0) => "Left",
+                (2, 1.0) => "Right",
                 _ => "Wall",
             };
 
@@ -214,6 +217,9 @@ fn spawn_playfield_walls(
                         Mesh3d(meshes.add(Cuboid::new(size.x, size.y, size.z))),
                         MeshMaterial3d(wall_material.clone()),
                         Transform::from_translation(translation),
+                        physics::components::BoundingCuboid {
+                            half_extents: size / 2.0,
+                        },
                     ))
                     .id(),
             );

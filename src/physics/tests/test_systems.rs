@@ -40,7 +40,6 @@ fn test_apply_velocity_moves_transform(case: ApplyVelocityCase) {
     app.insert_resource(time);
     app.add_systems(Update, physics::systems::apply_velocity);
 
-    // app.update() for some reason was not triggering the system
     app.update();
 
     let transform = app.world().get::<Transform>(entity).unwrap();
@@ -160,22 +159,28 @@ fn test_detect_collisions(case: DetectCollisionCase) {
     assert_eq!(collided, case.should_collide);
 }
 
-struct ReflectSphereCase {
+struct ResolveSphereAabbCollisionCase {
     initial_velocity: Vec3,
+    normal: Vec3,
+    penetration: f32,
     expected_velocity: Vec3,
 }
 
 #[test_case(
-    ReflectSphereCase {
+    ResolveSphereAabbCollisionCase {
         initial_velocity: Vec3::new(0.0, 0.0, -1.0),
-        expected_velocity: Vec3::new(0.0, 0.0, 1.0),
+        normal: Vec3::new(0.0, 0.0, 1.0),
+        penetration: 1.0,
+        expected_velocity: Vec3::new(0.0, 0.0, 2.0),
     }; "reflects negative z velocity")]
 #[test_case(
-    ReflectSphereCase {
+    ResolveSphereAabbCollisionCase {
         initial_velocity: Vec3::new(0.0, 0.0, 1.0),
+        normal: Vec3::new(0.0, 0.0, -1.0),
         expected_velocity: Vec3::new(0.0, 0.0, -1.0),
+        penetration: 0.0,
     }; "reflects positive z velocity")]
-fn test_reflect_sphere(case: ReflectSphereCase) {
+fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
     let mut app = App::new();
     app.add_message::<physics::messages::CollisionMessage>();
 
@@ -187,17 +192,24 @@ fn test_reflect_sphere(case: ReflectSphereCase) {
         ))
         .id();
 
-    let cuboid_entity = app.world_mut().spawn_empty().id();
+    let cuboid_entity = app.world_mut().spawn((
+        physics::components::BoundingCuboid {
+            half_extents: Vec3::new(1.0, 1.0, 1.0),
+        },
+    )).id();
     let collision_message = physics::messages::CollisionMessage {
         a: sphere_entity,
         b: cuboid_entity,
+        normal: case.normal,
+        contact_point: Vec3::default(),
+        penetration: case.penetration,
     };
     let mut messages = app
         .world_mut()
         .resource_mut::<Messages<physics::messages::CollisionMessage>>();
     messages.write(collision_message);
 
-    app.add_systems(Update, physics::systems::reflect_sphere);
+    app.add_systems(Update, physics::systems::resolve_sphere_aabb_collision);
     app.update();
 
     let velocity = app

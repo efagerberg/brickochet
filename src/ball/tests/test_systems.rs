@@ -11,7 +11,7 @@ const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Pla
     wall_line_highlight_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
 };
 
-struct ReflectCase {
+struct WallCollisionHandlerCase {
     pos: Vec3,
     vel: Vec3,
     curve: Vec2,
@@ -21,42 +21,6 @@ struct ReflectCase {
 }
 
 /// Helper functions for positions just beyond walls
-fn just_above_top_wall() -> Vec3 {
-    Vec3::new(
-        0.0,
-        PLAYFIELD_RES.bounds.half_extents.y
-            + ball::components::BallModifiers::starting().base_radius
-            + 0.1,
-        0.0,
-    )
-}
-fn just_below_bottom_wall() -> Vec3 {
-    Vec3::new(
-        0.0,
-        -PLAYFIELD_RES.bounds.half_extents.y
-            - ball::components::BallModifiers::starting().base_radius
-            - 0.1,
-        0.0,
-    )
-}
-fn just_left_of_left_wall() -> Vec3 {
-    Vec3::new(
-        -PLAYFIELD_RES.bounds.half_extents.x
-            - ball::components::BallModifiers::starting().base_radius
-            - 0.1,
-        0.0,
-        0.0,
-    )
-}
-fn just_right_of_right_wall() -> Vec3 {
-    Vec3::new(
-        PLAYFIELD_RES.bounds.half_extents.x
-            + ball::components::BallModifiers::starting().base_radius
-            + 0.1,
-        0.0,
-        0.0,
-    )
-}
 fn just_past_far_wall() -> Vec3 {
     Vec3::new(
         0.0,
@@ -76,63 +40,20 @@ fn just_past_near_wall() -> Vec3 {
     )
 }
 
+
 #[test_case(
-    ReflectCase {
-        pos: just_above_top_wall(),
-        vel: Vec3::Y,
-        curve: Vec2::X,
-        expected_pos: Vec3::new(0.0, PLAYFIELD_RES.bounds.half_extents.y - ball::components::BallModifiers::starting().base_radius, 0.0),
-        expected_vel: -Vec3::Y,
-        expected_curve: Vec2::X
-    };
-    "ball_hits_top_wall"
-)]
-#[test_case(
-    ReflectCase {
-        pos: just_below_bottom_wall(),
-        vel: -Vec3::Y,
-        curve: Vec2::X,
-        expected_pos: Vec3::new(0.0, -PLAYFIELD_RES.bounds.half_extents.y + ball::components::BallModifiers::starting().base_radius, 0.0),
-        expected_vel: Vec3::Y,
-        expected_curve: Vec2::X,
-    };
-    "ball_hits_bottom_wall"
-)]
-#[test_case(
-    ReflectCase {
-        pos: just_left_of_left_wall(),
-        vel: -Vec3::X,
-        curve: Vec2::X,
-        expected_pos: Vec3::new(-PLAYFIELD_RES.bounds.half_extents.x + ball::components::BallModifiers::starting().base_radius, 0.0, 0.0),
-        expected_vel: Vec3::X,
-        expected_curve: Vec2::X,
-    };
-    "ball_hits_left_wall"
-)]
-#[test_case(
-    ReflectCase {
-        pos: just_right_of_right_wall(),
-        vel: Vec3::X,
-        curve: Vec2::X,
-        expected_pos: Vec3::new(PLAYFIELD_RES.bounds.half_extents.x - ball::components::BallModifiers::starting().base_radius, 0.0, 0.0),
-        expected_vel: -Vec3::X,
-        expected_curve: Vec2::X,
-    };
-    "ball_hits_right_wall"
-)]
-#[test_case(
-    ReflectCase {
+    WallCollisionHandlerCase {
         pos: just_past_far_wall(),
         vel: -Vec3::Z,
         curve: Vec2::Y,
-        expected_pos: Vec3::new(0.0, 0.0, -PLAYFIELD_RES.bounds.half_extents.z + ball::components::BallModifiers::starting().base_radius),
-        expected_vel: Vec3::Z,
+        expected_pos: just_past_far_wall(),
+        expected_vel: -Vec3::Z,
         expected_curve: Vec2::ZERO,
     };
-    "ball_hits_far_wall"
+    "when ball hits far wall, curve is cleared but velocity is unchanged"
 )]
 #[test_case(
-    ReflectCase {
+    WallCollisionHandlerCase {
         pos: just_past_near_wall(),
         vel: Vec3::Z,
         curve: -Vec2::Y,
@@ -140,10 +61,10 @@ fn just_past_near_wall() -> Vec3 {
         expected_vel: Vec3::Z,
         expected_curve: Vec2::ZERO,
     };
-    "ball_hits_near_wall"
+    "when ball hits near wall, position is reset, velocity is set to starting velocity, and curve is cleared"
 )]
 #[test_case(
-    ReflectCase {
+    WallCollisionHandlerCase {
         pos: Vec3::ZERO,
         vel: Vec3::new(0.5, -0.5, 1.0),
         curve: Vec2::X,
@@ -151,9 +72,9 @@ fn just_past_near_wall() -> Vec3 {
         expected_vel: Vec3::new(0.5, -0.5, 1.0),
         expected_curve: Vec2::X,
     };
-    "ball_inside_playfield_no_reflection"
+    "when ball is not near any wall, position, velocity, and curve are unchanged"
 )]
-fn test_reflect_ball(case: ReflectCase) {
+fn test_wall_collision_handler(case: WallCollisionHandlerCase) {
     let mut app = App::new();
     app.insert_resource(PLAYFIELD_RES);
 
