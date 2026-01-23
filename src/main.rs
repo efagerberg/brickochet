@@ -3,6 +3,8 @@ use bevy::window;
 use bevy_inspector_egui::{bevy_egui, quick};
 
 mod ball;
+mod brick;
+mod health;
 mod input;
 mod paddle;
 mod physics;
@@ -26,8 +28,9 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
+        .add_plugins(health::HealthPlugin)
         .add_message::<physics::messages::CollisionMessage>()
-        .add_systems(Startup, scene::setup)
+        .add_systems(Startup, (scene::setup, brick::systems::spawn_brick_wall).chain())
         .add_systems(
             Update,
             (
@@ -39,6 +42,7 @@ fn main() {
                 )
                     .chain(),
                 playfield::systems::highlight_depth_lines,
+                brick::systems::update_health_color,
                 rendering::systems::update_material_color,
             ),
         )
@@ -50,6 +54,7 @@ fn main() {
                     physics::systems::apply_velocity,
                     physics::systems::detect_collisions,
                     physics::systems::resolve_sphere_aabb_collision,
+                    brick::systems::handle_collision,
                 )
                     .chain(),
                 (

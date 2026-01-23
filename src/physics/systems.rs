@@ -47,7 +47,7 @@ pub fn detect_collisions(
 
                 let contact_point = physics::math::closest_point_on_aabb(
                     a_transform.translation,
-                    a_transform.translation,
+                    b_transform.translation,
                     b_bounds.half_extents,
                 );
 
@@ -68,7 +68,7 @@ pub fn detect_collisions(
 pub fn resolve_sphere_aabb_collision(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
-        &mut physics::components::Velocity,
+        (&mut physics::components::Velocity, &mut Transform),
         With<physics::components::BoundingSphere>,
     >,
     cuboid_query: Query<
@@ -79,13 +79,40 @@ pub fn resolve_sphere_aabb_collision(
         ),
     >,
 ) {
+    // Collect all collisions per sphere
+    let mut collisions_per_sphere: std::collections::HashMap<
+        Entity,
+        Vec<&physics::messages::CollisionMessage>,
+    > = std::collections::HashMap::new();
     for message in messages.read() {
-        if let (Ok(mut sphere_velocity), Ok(_)) =
-            (sphere_query.get_mut(message.a), cuboid_query.get(message.b))
-        {
-            // Make sure to move out of the boundary if there is penetration to prevent sticking
-            let reflected_penetration = message.normal * message.penetration;
-            sphere_velocity.0 = sphere_velocity.0.reflect(message.normal) + reflected_penetration;
+        collisions_per_sphere
+            .entry(message.a)
+            .or_default()
+            .push(message);
+    }
+
+    for (sphere_entity, collisions) in collisions_per_sphere {
+        if let Ok((mut velocity, mut transform)) = sphere_query.get_mut(sphere_entity) {
+            let mut total_normal = Vec3::ZERO;
+            let mut max_penetration: f32 = 0.0;
+
+            // Only consider collisions with valid cuboids
+            for message in collisions {
+                if cuboid_query.get(message.b).is_ok() {
+                    total_normal += message.normal;
+                    max_penetration = max_penetration.max(message.penetration);
+                }
+            }
+
+            if total_normal != Vec3::ZERO {
+                let normal = total_normal.normalize();
+
+                // Move the sphere out of the cuboid
+                transform.translation += normal * max_penetration;
+
+                // Reflect velocity once
+                velocity.0 = velocity.0.reflect(normal);
+            }
         }
     }
 }
