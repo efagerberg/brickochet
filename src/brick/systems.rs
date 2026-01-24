@@ -23,7 +23,7 @@ pub fn spawn_brick_wall(
     let wall_z = enemy_goal_transform.translation.z; // depth position
 
     // Brick size (uniform)
-    let brick_size = Vec3::new(4.0, 2.0, 1.0);
+    let brick_size = Vec3::new(4.0, 2.0, 0.25);
 
     // How many bricks fit
     let bricks_x = (wall_width / brick_size.x).floor() as i32;

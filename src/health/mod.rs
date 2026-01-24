@@ -18,8 +18,8 @@ impl Plugin for HealthPlugin {
             .add_systems(
                 Update,
                 (
-                    systems::handle_death,
                     systems::handle_health_changed,
+                    systems::handle_death,
                 ),
             );
     }

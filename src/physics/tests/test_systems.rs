@@ -159,27 +159,38 @@ fn test_detect_collisions(case: DetectCollisionCase) {
     assert_eq!(collided, case.should_collide);
 }
 
+#[derive(Default)]
 struct ResolveSphereAabbCollisionCase {
     initial_velocity: Vec3,
+    initial_position: Vec3,
     normal: Vec3,
     penetration: f32,
     expected_velocity: Vec3,
+    expected_position: Vec3,
 }
 
 #[test_case(
     ResolveSphereAabbCollisionCase {
         initial_velocity: Vec3::new(0.0, 0.0, -1.0),
         normal: Vec3::new(0.0, 0.0, 1.0),
-        penetration: 1.0,
-        expected_velocity: Vec3::new(0.0, 0.0, 2.0),
+        expected_velocity: Vec3::new(0.0, 0.0, 1.0),
+        ..default()
     }; "reflects negative z velocity")]
 #[test_case(
     ResolveSphereAabbCollisionCase {
         initial_velocity: Vec3::new(0.0, 0.0, 1.0),
         normal: Vec3::new(0.0, 0.0, -1.0),
         expected_velocity: Vec3::new(0.0, 0.0, -1.0),
-        penetration: 0.0,
+        ..default()
     }; "reflects positive z velocity")]
+#[test_case(
+    ResolveSphereAabbCollisionCase {
+        initial_position: Vec3::new(1.0, 2.0, 3.0),
+        normal: Vec3::new(0.0, 0.0, -1.0),
+        penetration: 1.0,
+        expected_position: Vec3::new(1.0, 2.0, 2.0),
+        ..default()
+    }; "Moves transform out of collision manually")]
 fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
     let mut app = App::new();
     app.add_message::<physics::messages::CollisionMessage>();
@@ -189,6 +200,7 @@ fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
         .spawn((
             physics::components::Velocity(case.initial_velocity),
             physics::components::BoundingSphere { radius: 1.0 },
+            Transform::from_translation(case.initial_position)
         ))
         .id();
 
@@ -218,4 +230,9 @@ fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
         .get::<physics::components::Velocity>(sphere_entity)
         .unwrap();
     assert_eq!(velocity.0, case.expected_velocity);
+    let transform = app
+        .world()
+        .get::<Transform>(sphere_entity)
+        .unwrap();
+    assert_eq!(transform.translation, case.expected_position)
 }

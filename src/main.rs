@@ -28,9 +28,12 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
+        .add_plugins(physics::PhysicsPlugin)
         .add_plugins(health::HealthPlugin)
-        .add_message::<physics::messages::CollisionMessage>()
-        .add_systems(Startup, (scene::setup, brick::systems::spawn_brick_wall).chain())
+        .add_systems(
+            Startup,
+            (scene::setup, brick::systems::spawn_brick_wall).chain(),
+        )
         .add_systems(
             Update,
             (
@@ -41,29 +44,29 @@ fn main() {
                     paddle::systems::finalize_paddle_motion,
                 )
                     .chain(),
-                playfield::systems::highlight_depth_lines,
-                brick::systems::update_health_color,
-                rendering::systems::update_material_color,
             ),
         )
         .add_systems(
             FixedUpdate,
             (
-                (
-                    physics::systems::apply_curve,
-                    physics::systems::apply_velocity,
-                    physics::systems::detect_collisions,
-                    physics::systems::resolve_sphere_aabb_collision,
-                    brick::systems::handle_collision,
-                )
-                    .chain(),
+                paddle::systems::apply_curve_from_motion_record
+                    .before(physics::PhysicsSet::Integrate),
                 (
                     paddle::systems::apply_paddle_impact_modifiers,
-                    playfield::systems::wall_collision_handler,
-                    paddle::systems::apply_curve_from_motion_record,
+                    playfield::systems::handle_wall_collision,
+                    brick::systems::handle_collision
                 )
-                    .chain(),
+                    .after(physics::PhysicsSet::ResolveCollisions),
             ),
+        )
+        .add_systems(
+            PostUpdate,
+            (
+                playfield::systems::highlight_depth_lines,
+                brick::systems::update_health_color,
+                rendering::systems::update_material_color,
+            )
+                .chain(),
         )
         .run();
 }

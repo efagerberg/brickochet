@@ -147,7 +147,7 @@ fn test_wall_collision_handler(case: WallCollisionHandlerCase) {
         case.colliding_goal,
     );
 
-    app.add_systems(Update, playfield::systems::wall_collision_handler);
+    app.add_systems(Update, playfield::systems::handle_wall_collision);
     app.update();
 
     let transform = app.world().get::<Transform>(ball_entity).unwrap();

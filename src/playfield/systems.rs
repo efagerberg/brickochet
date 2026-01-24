@@ -33,7 +33,7 @@ pub fn highlight_depth_lines(
     }
 }
 
-pub fn wall_collision_handler(
+pub fn handle_wall_collision(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         (
