@@ -28,9 +28,11 @@ fn main() {
         // ))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
-        .add_plugins(physics::PhysicsPlugin)
-        .add_plugins(health::HealthPlugin)
-        .add_message::<rendering::messages::MaterialColorsChangedMessage>()
+        .add_plugins((
+            physics::PhysicsPlugin,
+            rendering::RenderingPlugin,
+            health::HealthPlugin,
+        ))
         .add_systems(
             Startup,
             (scene::setup, brick::systems::spawn_brick_wall).chain(),
@@ -65,9 +67,8 @@ fn main() {
             (
                 playfield::systems::highlight_depth_lines,
                 brick::systems::update_health_color,
-                rendering::systems::update_material_color,
             )
-                .chain(),
+                .before(rendering::RenderingSet::Integrate),
         )
         .run();
 }
