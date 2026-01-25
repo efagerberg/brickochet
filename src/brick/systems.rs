@@ -103,18 +103,23 @@ fn spawn_brick(
                 size.y - border_padding,
                 size.z,
             ))),
-            MeshMaterial3d(materials.add(StandardMaterial::default())),
-            rendering::components::MaterialColorsUpdate {
-                base_color: Some(color),
-                emissive: None
-            },
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: color,
+                ..default()
+            })),
         ))
         .id();
     commands.entity(main).add_child(border);
 }
 
 pub fn handle_collision(
-    brick_query: Query<Entity, (With<brick::components::Brick>, With<health::components::Health>)>,
+    brick_query: Query<
+        Entity,
+        (
+            With<brick::components::Brick>,
+            With<health::components::Health>,
+        ),
+    >,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut health_changed_messages: MessageWriter<health::messages::HealChangedMessage>,
 ) {
@@ -129,19 +134,26 @@ pub fn handle_collision(
 }
 
 pub fn update_health_color(
-    mut brick_query: Query<(&health::components::Health, &mut rendering::components::MaterialColorsUpdate), With<brick::components::Brick>>,
+    mut brick_query: Query<(Entity, &health::components::Health), With<brick::components::Brick>>,
     mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
+    mut material_colors_changed_messages: MessageWriter<
+        rendering::messages::MaterialColorsChangedMessage,
+    >,
 ) {
     let max_color = &LinearRgba::rgb(0.0, 1.0, 0.0);
     let min_color = LinearRgba::rgb(1.0, 0.0, 0.0);
 
     for message in health_changed_messages.read() {
-        if let Ok((health, mut color_update)) = brick_query.get_mut(message.entity) {
-            if color_update.base_color.is_some() {
-                let t = (health.current as f32 / health.max as f32).clamp(0.0, 1.0);
-                let new_color = Color::from(min_color.mix(max_color, t));
-                color_update.base_color = Some(new_color);
-            }
+        if let Ok((entity, health)) = brick_query.get_mut(message.entity) {
+            let t = ((health.current - 1) as f32 / health.max as f32).clamp(0.0, 1.0);
+            let new_color = Color::from(min_color.mix(max_color, t));
+            material_colors_changed_messages.write(
+                rendering::messages::MaterialColorsChangedMessage {
+                    entity,
+                    base_color: Some(new_color),
+                    emissive: None,
+                },
+            );
         }
     }
 }

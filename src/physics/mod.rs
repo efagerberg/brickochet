@@ -37,7 +37,7 @@ impl Plugin for PhysicsPlugin {
                     systems::apply_velocity.in_set(PhysicsSet::Integrate),
                     systems::detect_collisions.in_set(PhysicsSet::DetectCollisions),
                     systems::resolve_sphere_aabb_collision.in_set(PhysicsSet::ResolveCollisions),
-                )
+                ),
             );
     }
 }

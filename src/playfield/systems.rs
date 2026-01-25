@@ -3,11 +3,9 @@ use bevy::prelude::*;
 
 pub fn highlight_depth_lines(
     ball_query: Single<(&Transform, &physics::components::BoundingSphere)>,
-    lines: Query<
-        (&Transform, &mut rendering::components::MaterialColorsUpdate),
-        With<playfield::components::DepthLines>,
-    >,
+    lines: Query<(Entity, &Transform), With<playfield::components::DepthLines>>,
     playfield: Res<playfield::resources::Playfield>,
+    mut messages: MessageWriter<rendering::messages::MaterialColorsChangedMessage>,
 ) {
     let (ball_transform, sphere) = ball_query.into_inner();
 
@@ -18,18 +16,16 @@ pub fn highlight_depth_lines(
     let base_color = &playfield.wall_line_default_color;
     let highlight_color = &playfield.wall_line_highlight_color;
 
-    for (line_transform, mut material_color) in lines {
+    for (entity, line_transform) in lines {
         let distance = (line_transform.translation.z - ball_z).abs();
         let t = (max_distance - distance).clamp(0.0, 1.0); // 0 if far, 1 if very closet);
         let new_color = LinearRgba::mix(base_color, highlight_color, t);
 
-        if material_color
-            .emissive
-            .is_some_and(|current| current == new_color)
-        {
-            continue;
-        }
-        material_color.emissive.replace(new_color);
+        messages.write(rendering::messages::MaterialColorsChangedMessage {
+            entity,
+            emissive: Some(new_color),
+            base_color: None,
+        });
     }
 }
 

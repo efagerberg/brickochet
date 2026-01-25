@@ -200,7 +200,7 @@ fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
         .spawn((
             physics::components::Velocity(case.initial_velocity),
             physics::components::BoundingSphere { radius: 1.0 },
-            Transform::from_translation(case.initial_position)
+            Transform::from_translation(case.initial_position),
         ))
         .id();
 
@@ -230,9 +230,6 @@ fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
         .get::<physics::components::Velocity>(sphere_entity)
         .unwrap();
     assert_eq!(velocity.0, case.expected_velocity);
-    let transform = app
-        .world()
-        .get::<Transform>(sphere_entity)
-        .unwrap();
+    let transform = app.world().get::<Transform>(sphere_entity).unwrap();
     assert_eq!(transform.translation, case.expected_position)
 }

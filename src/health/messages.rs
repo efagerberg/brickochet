@@ -6,7 +6,6 @@ pub struct HealChangedMessage {
     pub delta: i16,
 }
 
-
 #[derive(Message)]
 pub struct DeathMessage {
     pub entity: Entity,

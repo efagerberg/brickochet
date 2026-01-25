@@ -1,6 +1,6 @@
 use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
-use crate::{ball, paddle, physics, playfield, rendering};
+use crate::{ball, paddle, physics, playfield};
 
 pub fn setup(
     mut commands: Commands,
@@ -58,7 +58,6 @@ fn spawn_playfield(
                     Name::new(format!("Depth Line {}", i)),
                     Mesh3d(mesh),
                     MeshMaterial3d(line_material.clone()),
-                    rendering::components::MaterialColorsUpdate::default(),
                     Transform::from_xyz(0.0, 0.0, z),
                 ))
                 .id(),

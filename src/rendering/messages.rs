@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
-#[derive(Component, Default, Clone)]
-pub struct MaterialColorsUpdate {
+#[derive(Message, Clone)]
+pub struct MaterialColorsChangedMessage {
+    pub entity: Entity,
     pub base_color: Option<bevy::color::Color>,
     pub emissive: Option<LinearRgba>,
 }

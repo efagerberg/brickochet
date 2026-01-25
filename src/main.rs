@@ -30,6 +30,7 @@ fn main() {
         .add_plugins(quick::WorldInspectorPlugin::default())
         .add_plugins(physics::PhysicsPlugin)
         .add_plugins(health::HealthPlugin)
+        .add_message::<rendering::messages::MaterialColorsChangedMessage>()
         .add_systems(
             Startup,
             (scene::setup, brick::systems::spawn_brick_wall).chain(),
@@ -54,7 +55,7 @@ fn main() {
                 (
                     paddle::systems::apply_paddle_impact_modifiers,
                     playfield::systems::handle_wall_collision,
-                    brick::systems::handle_collision
+                    brick::systems::handle_collision,
                 )
                     .after(physics::PhysicsSet::ResolveCollisions),
             ),
