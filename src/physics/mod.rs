@@ -10,8 +10,8 @@ mod tests;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum PhysicsSet {
-    Forces,
-    Integrate,
+    ComputeForces,
+    ApplyForces,
     DetectCollisions,
     ResolveCollisions,
 }
@@ -24,17 +24,17 @@ impl Plugin for PhysicsPlugin {
             .configure_sets(
                 FixedUpdate,
                 (
-                    PhysicsSet::Forces,
-                    PhysicsSet::Integrate.after(PhysicsSet::Forces),
-                    PhysicsSet::DetectCollisions.after(PhysicsSet::Integrate),
+                    PhysicsSet::ComputeForces,
+                    PhysicsSet::ApplyForces.after(PhysicsSet::ComputeForces),
+                    PhysicsSet::DetectCollisions.after(PhysicsSet::ApplyForces),
                     PhysicsSet::ResolveCollisions.after(PhysicsSet::DetectCollisions),
                 ),
             )
             .add_systems(
                 FixedUpdate,
                 (
-                    systems::apply_curve.in_set(PhysicsSet::Forces),
-                    systems::apply_velocity.in_set(PhysicsSet::Integrate),
+                    systems::apply_curve.in_set(PhysicsSet::ComputeForces),
+                    systems::apply_velocity.in_set(PhysicsSet::ApplyForces),
                     systems::detect_collisions.in_set(PhysicsSet::DetectCollisions),
                     systems::resolve_sphere_aabb_collision.in_set(PhysicsSet::ResolveCollisions),
                 ),

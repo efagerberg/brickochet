@@ -1,5 +1,8 @@
-use crate::{ball, physics, playfield, rendering};
 use bevy::prelude::*;
+
+use crate::gameplay::{ball, playfield};
+use crate::physics;
+use crate::rendering;
 
 pub fn highlight_depth_lines(
     ball_query: Single<(&Transform, &physics::components::BoundingSphere)>,

@@ -1,0 +1,95 @@
+use bevy::prelude::*;
+use test_case::test_case;
+
+use crate::health::{components, messages, systems};
+use crate::test_utils;
+
+fn create_health_change_app() -> App {
+    let mut app = App::new();
+    app.add_message::<messages::HealChangedMessage>()
+        .add_message::<messages::DeathMessage>()
+        .add_systems(Update, systems::handle_health_changed);
+    app
+}
+
+pub struct HealthChangedCase {
+    starting_health: components::Health,
+    delta: i16,
+    expected_current: u8,
+}
+
+#[test_case(
+    HealthChangedCase {
+        starting_health: components::Health { max: 10, current: 10 },
+        delta: -3,
+        expected_current: 7,
+    }; "health reduced by 3")]
+#[test_case(
+    HealthChangedCase {
+        starting_health: components::Health { max: 10, current: 7 },
+        delta: 3,
+        expected_current: 10
+    }; "health increased by 3")]
+#[test_case(
+    HealthChangedCase {
+        starting_health: components::Health { max: 10, current: 10 },
+        delta: 3,
+        expected_current: 10
+    }; "health clamped to max"
+)]
+#[test_case(
+    HealthChangedCase {
+        starting_health: components::Health { max: 10, current: 0 },
+        delta: -10,
+        expected_current: 0
+    }; "health clamped to zero"
+)]
+fn test_health_change(case: HealthChangedCase) {
+    let mut app = create_health_change_app();
+    let entity = app.world_mut().spawn(case.starting_health).id();
+
+    app.world_mut().write_message(messages::HealChangedMessage {
+        entity,
+        delta: case.delta,
+    });
+    app.update();
+
+    let health = app.world().get::<components::Health>(entity).unwrap();
+    assert_eq!(health.current, case.expected_current);
+
+    let expected = if case.expected_current == 0 {
+        vec![messages::DeathMessage { entity }]
+    } else {
+        vec![]
+    };
+    test_utils::assertions::assert_messages(&app, &expected);
+}
+
+#[test]
+fn death_message_removes_entity() {
+    let mut app = create_death_app();
+    let entity = app.world_mut().spawn_empty().id();
+
+    app.world_mut()
+        .write_message(messages::DeathMessage { entity });
+    app.update();
+
+    assert!(app.world().get_entity(entity).is_err());
+}
+
+#[test]
+fn no_death_message_keeps_entity_alive() {
+    let mut app = create_death_app();
+    let entity = app.world_mut().spawn_empty().id();
+
+    app.update();
+
+    assert!(app.world().get_entity(entity).is_ok());
+}
+
+fn create_death_app() -> App {
+    let mut app = App::new();
+    app.add_message::<messages::DeathMessage>()
+        .add_systems(Update, systems::handle_death);
+    app
+}

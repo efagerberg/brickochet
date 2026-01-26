@@ -1,6 +1,10 @@
-use crate::{ball, physics, playfield, rendering};
 use bevy::prelude::*;
 use test_case::test_case;
+
+use crate::gameplay::{ball, playfield};
+use crate::physics;
+use crate::rendering;
+use crate::test_utils;
 
 #[derive(Debug)]
 struct HighlightDepthLinesCase {
@@ -16,30 +20,38 @@ const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Pla
 
 #[test_case(
     HighlightDepthLinesCase {
-        ball_z: 2.0,
+        ball_z: 0.001,
         lines_z: 0.0,
         expected_mix: 1.0,
     };
-    "emissive increases as ball approaches depth line"
+    "emissive increases as ball move towards depth line"
+)]
+#[test_case(
+    HighlightDepthLinesCase {
+        ball_z: -200.0,
+        lines_z: 0.0,
+        expected_mix: 0.0,
+    };
+    "emissive decreases as ball moves away from depth line"
 )]
 fn test_highlight_depth_lines_emits_color_change(case: HighlightDepthLinesCase) {
-    let result = run_highlight_depth_lines(case.ball_z, case.lines_z);
-
+    let mut app = App::new();
+    let entity = run_highlight_depth_lines(&mut app, case.ball_z, case.lines_z);
     let expected_color = LinearRgba::mix(
         &PLAYFIELD_RES.wall_line_default_color,
         &PLAYFIELD_RES.wall_line_highlight_color,
         case.expected_mix,
     );
+    let expected_messages = vec![rendering::messages::MaterialColorsChangedMessage {
+        entity,
+        base_color: None,
+        emissive: Some(expected_color),
+    }];
 
-    assert_eq!(result.messages.len(), 1);
-    let msg = &result.messages[0];
-
-    assert_eq!(msg.entity, result.lines_entity);
-    assert_eq!(msg.emissive.unwrap(), expected_color);
+    test_utils::assertions::assert_messages(&app, &expected_messages);
 }
 
-fn run_highlight_depth_lines(ball_z: f32, lines_z: f32) -> HighlightDepthLinesResult {
-    let mut app = App::new();
+fn run_highlight_depth_lines(app: &mut App, ball_z: f32, lines_z: f32) -> Entity {
     app.insert_resource(PLAYFIELD_RES);
 
     let ball_modifiers = ball::components::BallModifiers::starting();
@@ -64,23 +76,7 @@ fn run_highlight_depth_lines(ball_z: f32, lines_z: f32) -> HighlightDepthLinesRe
 
     app.update();
 
-    let messages = collect_messages::<rendering::messages::MaterialColorsChangedMessage>(&app);
-
-    HighlightDepthLinesResult {
-        lines_entity,
-        messages,
-    }
-}
-
-struct HighlightDepthLinesResult {
-    lines_entity: Entity,
-    messages: Vec<rendering::messages::MaterialColorsChangedMessage>,
-}
-
-fn collect_messages<M: Message + Clone + 'static>(app: &App) -> Vec<M> {
-    let messages = app.world().resource::<Messages<M>>();
-    let mut cursor = messages.get_cursor();
-    cursor.read(messages).cloned().collect()
+    lines_entity
 }
 
 use std::f32::EPSILON;

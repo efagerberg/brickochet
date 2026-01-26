@@ -4,8 +4,8 @@ pub mod components;
 pub mod messages;
 pub mod systems;
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 pub struct HealthPlugin;
 

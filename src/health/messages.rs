@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-#[derive(Message)]
+#[derive(Message, Copy, Clone, PartialEq, Debug)]
 pub struct HealChangedMessage {
     pub entity: Entity,
     pub delta: i16,
 }
 
-#[derive(Message)]
+#[derive(Message, Copy, Clone, PartialEq, Debug)]
 pub struct DeathMessage {
     pub entity: Entity,
 }

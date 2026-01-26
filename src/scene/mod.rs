@@ -1,6 +1,14 @@
 use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
-use crate::{ball, paddle, physics, playfield};
+use crate::{gameplay, physics};
+
+pub struct ScenePlugin;
+
+impl Plugin for ScenePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup.before(gameplay::GameplaySet::Initialize));
+    }
+}
 
 pub fn setup(
     mut commands: Commands,
@@ -30,7 +38,7 @@ fn spawn_playfield(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
     half_size: Vec3,
-) -> playfield::resources::Playfield {
+) -> gameplay::playfield::resources::Playfield {
     let wall_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
     let clear_wall_material = materials.add(Color::srgba(0.0, 0.0, 0.0, 0.0));
 
@@ -54,7 +62,7 @@ fn spawn_playfield(
         children.push(
             commands
                 .spawn((
-                    playfield::components::DepthLines,
+                    gameplay::playfield::components::DepthLines,
                     Name::new(format!("Depth Line {}", i)),
                     Mesh3d(mesh),
                     MeshMaterial3d(line_material.clone()),
@@ -84,7 +92,7 @@ fn spawn_playfield(
         commands.entity(parent_entity).add_child(child);
     }
 
-    let playfield = playfield::resources::Playfield {
+    let playfield = gameplay::playfield::resources::Playfield {
         wall_line_default_color: line_default_color,
         wall_line_highlight_color: line_highlight_color,
     };
@@ -211,8 +219,8 @@ fn spawn_playfield_walls(
                 _ => "Wall",
             };
             let goal = match (axis, side) {
-                (2, -1.0) => Some(playfield::components::Goal::Enemy),
-                (2, 1.0) => Some(playfield::components::Goal::Player),
+                (2, -1.0) => Some(gameplay::playfield::components::Goal::Enemy),
+                (2, 1.0) => Some(gameplay::playfield::components::Goal::Player),
                 _ => None,
             };
 
@@ -278,11 +286,11 @@ fn spawn_paddle(
     };
     let cuboid_dimensions = bounds.half_extents * 2.0;
     commands.spawn((
-        paddle::components::Paddle,
+        gameplay::paddle::components::Paddle,
         Name::new("Paddle"),
         bounds,
-        paddle::components::PaddleMotionRecord::default(),
-        paddle::components::PaddleImpactModifiers::starting(),
+        gameplay::paddle::components::PaddleMotionRecord::default(),
+        gameplay::paddle::components::PaddleImpactModifiers::starting(),
         Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 4.0),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Cuboid::new(
@@ -299,7 +307,7 @@ fn spawn_ball(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
-    let ball_modifiers = ball::components::BallModifiers::starting();
+    let ball_modifiers = gameplay::ball::components::BallModifiers::starting();
     commands.spawn((
         ball_modifiers.clone(),
         Name::new("Ball"),

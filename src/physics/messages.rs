@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Message)]
+#[derive(Message, Debug, PartialEq, Copy, Clone)]
 pub struct CollisionMessage {
     pub a: Entity,
     pub b: Entity,

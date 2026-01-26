@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-use crate::{brick, health, physics, playfield, rendering};
+use crate::gameplay::{brick, playfield};
+use crate::{health, physics, rendering};
 
 pub fn spawn_brick_wall(
     mut commands: Commands,
@@ -145,7 +146,10 @@ pub fn update_health_color(
 
     for message in health_changed_messages.read() {
         if let Ok((entity, health)) = brick_query.get_mut(message.entity) {
-            let t = ((health.current - 1) as f32 / health.max as f32).clamp(0.0, 1.0);
+            if health.current == 0 {
+                continue;
+            }
+            let t = ((health.current as f32 - 1.0) / (health.max as f32 - 1.0)).clamp(0.0, 1.0);
             let new_color = Color::from(min_color.mix(max_color, t));
             material_colors_changed_messages.write(
                 rendering::messages::MaterialColorsChangedMessage {

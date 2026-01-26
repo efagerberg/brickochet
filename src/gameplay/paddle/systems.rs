@@ -1,5 +1,7 @@
-use crate::{ball, paddle, physics, playfield};
 use bevy::prelude::*;
+
+use crate::gameplay::{ball, paddle, playfield};
+use crate::physics;
 
 pub fn paddle_mouse_control(
     mut mouse_motion_message_reader: MessageReader<bevy::input::mouse::MouseMotion>,
