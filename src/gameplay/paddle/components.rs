@@ -22,12 +22,12 @@ pub struct PaddleImpactModifiers {
 
 impl PaddleImpactModifiers {
     pub fn starting() -> Self {
-        return PaddleImpactModifiers {
+        PaddleImpactModifiers {
             normal_curve_scale: 6.0,
             super_curve_scale: 18.0,
             normal_curve_position_delta_threshold: 0.002,
             super_curve_position_delta_threshold: 0.006,
             z_speed_delta: 1.0,
-        };
+        }
     }
 }

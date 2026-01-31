@@ -7,9 +7,9 @@ pub struct BallModifiers {
 }
 impl BallModifiers {
     pub fn starting() -> Self {
-        return BallModifiers {
+        BallModifiers {
             base_radius: 0.75,
             base_velocity: Vec3::new(0.0, 0.0, 20.0),
-        };
+        }
     }
 }

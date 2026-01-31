@@ -12,7 +12,7 @@ pub fn handle_health_changed(
             let new_health =
                 (health.current as i16 + message.delta).clamp(0, health.max as i16) as u8;
             health.current = new_health;
-            if health.current <= 0 {
+            if health.current == 0 {
                 death_messages.write(health::messages::DeathMessage {
                     entity: message.entity,
                 });

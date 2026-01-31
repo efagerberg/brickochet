@@ -127,7 +127,7 @@ pub fn handle_collision(
     for message in collision_messages.read() {
         if let Ok(entity) = brick_query.get(message.b) {
             health_changed_messages.write(health::messages::HealChangedMessage {
-                entity: entity,
+                entity,
                 delta: -1,
             });
         }
