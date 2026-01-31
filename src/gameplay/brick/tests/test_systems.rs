@@ -93,9 +93,6 @@ fn test_handle_collision_decreases_health() {
     });
     app.update();
 
-    let expected = health::messages::HealChangedMessage {
-        entity,
-        delta: -1
-    };
+    let expected = health::messages::HealChangedMessage { entity, delta: -1 };
     test_utils::assertions::assert_messages(&app, &vec![expected]);
 }
