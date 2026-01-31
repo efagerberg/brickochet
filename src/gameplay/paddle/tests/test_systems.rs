@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use test_case::test_case;
 
-use crate::{ball, paddle, physics, playfield};
+use crate::gameplay::{ball, paddle, playfield};
+use crate::physics;
 
 const SENSITIVITY: f32 = 0.025;
 const PLAYFIELD_HALF: f32 = 5.0;

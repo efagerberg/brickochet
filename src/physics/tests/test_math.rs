@@ -1,8 +1,7 @@
-use bevy::math::Vec3;
 use crate::physics::math;
+use bevy::math::Vec3;
 use std::f32::EPSILON;
 use test_case::test_case;
-
 
 #[derive(Debug)]
 struct SphereAabbIntersectsCase {
@@ -80,8 +79,12 @@ fn test_sphere_aabb_intersects(case: SphereAabbIntersectsCase) {
 )]
 fn test_closest_point_on_aabb(case: ClosestPointCase) {
     let result = math::closest_point_on_aabb(case.point, case.aabb_center, case.half_extents);
-    assert!((result - case.expected).length() < EPSILON,
-        "expected {:?}, got {:?}", case.expected, result);
+    assert!(
+        (result - case.expected).length() < EPSILON,
+        "expected {:?}, got {:?}",
+        case.expected,
+        result
+    );
 }
 
 #[test_case(
@@ -121,6 +124,10 @@ fn test_sphere_aabb_contact_normal(case: ContactNormalCase) {
         case.aabb_position,
         case.aabb_half_extents,
     );
-    assert!((normal - case.expected_normal).length() < EPSILON,
-        "expected {:?}, got {:?}", case.expected_normal, normal);
+    assert!(
+        (normal - case.expected_normal).length() < EPSILON,
+        "expected {:?}, got {:?}",
+        case.expected_normal,
+        normal
+    );
 }

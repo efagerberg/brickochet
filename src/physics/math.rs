@@ -6,11 +6,7 @@ pub fn sphere_aabb_intersects(
     aabb_position: Vec3,
     aabb_half_extents: Vec3,
 ) -> bool {
-    let closest = sphere_position.clamp(
-        aabb_position - aabb_half_extents,
-        aabb_position + aabb_half_extents,
-    );
-
+    let closest = closest_point_on_aabb(sphere_position, aabb_position, aabb_half_extents);
     sphere_position.distance_squared(closest) <= radius * radius
 }
 

@@ -1,5 +1,7 @@
+use bevy::prelude::*;
+
 #[derive(Component)]
 pub struct Health {
-    max: uint8,
-    current: uint8,
+    pub max: u8,
+    pub current: u8,
 }
