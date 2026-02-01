@@ -95,6 +95,7 @@ fn spawn_playfield(
     let playfield = gameplay::playfield::resources::Playfield {
         wall_line_default_color: line_default_color,
         wall_line_highlight_color: line_highlight_color,
+        brick_size: Vec3::new(4.0, 2.0, 0.25),
     };
     commands.insert_resource(playfield.clone());
     playfield
@@ -237,7 +238,7 @@ fn spawn_playfield_walls(
                     MeshMaterial3d(material.clone()),
                     Transform::from_translation(translation),
                     physics::components::BoundingCuboid {
-                        half_extents: size / 2.0,
+                        half_extents: size * 0.5,
                     },
                 ))
                 .id();
