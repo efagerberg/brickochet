@@ -19,19 +19,15 @@ pub enum Affects {
     SelfAndOthers(Vec<Entity>),
 }
 
-
 #[derive(Component)]
 pub struct ChangeOnCollision {
     pub delta: i16,
-    pub targets: Affects
+    pub affected: Affects,
 }
 
 impl ChangeOnCollision {
-    pub fn affected_entities(
-        &self,
-        entity: Entity,
-    ) -> Box<dyn Iterator<Item = Entity> + '_> {
-        match &self.targets {
+    pub fn affected_entities(&self, entity: Entity) -> Box<dyn Iterator<Item = Entity> + '_> {
+        match &self.affected {
             Affects::SelfOnly => Box::new(std::iter::once(entity)),
             Affects::Others(others) => Box::new(others.iter().copied()),
             Affects::SelfAndOthers(others) => {
@@ -40,4 +36,3 @@ impl ChangeOnCollision {
         }
     }
 }
-

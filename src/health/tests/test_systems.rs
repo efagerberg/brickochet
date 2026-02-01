@@ -196,7 +196,10 @@ fn test_handle_collision(case: HandleCollisionCase) {
         .spawn(components::Health { current: 1, max: 1 })
         .id();
 
-    let potential_target_entity = app.world_mut().spawn(components::Health { current: 1, max: 1 }).id();
+    let potential_target_entity = app
+        .world_mut()
+        .spawn(components::Health { current: 1, max: 1 })
+        .id();
     let affects = match case.target {
         Target::SelfOnly => components::Affects::SelfOnly,
         Target::Others => components::Affects::Others(vec![potential_target_entity]),
@@ -207,7 +210,7 @@ fn test_handle_collision(case: HandleCollisionCase) {
         .entity_mut(collision_b_entity)
         .insert(components::ChangeOnCollision {
             delta: case.delta,
-            targets: affects.clone(),
+            affected: affects.clone(),
         });
 
     let affected_targets = match affects {

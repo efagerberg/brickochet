@@ -64,7 +64,7 @@ fn spawn_brick(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     position: Vec3,
     size: Vec3,
-    color: Color,
+    _color: Color,
 ) {
     // Outer black border (slightly larger)
     let border_padding = 0.25;
@@ -84,6 +84,9 @@ fn spawn_brick(
             })),
         ))
         .id();
+
+    let healthy_color = LinearRgba::rgb(0.0, 1.0, 0.0);
+    let critical_color = LinearRgba::rgb(1.0, 0.0, 0.0);
 
     // Main colored brick
     let main = commands
@@ -105,18 +108,18 @@ fn spawn_brick(
                 size.z,
             ))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: color,
+                base_color: Color::from(healthy_color),
                 ..default()
             })),
             health::components::Health { max: 3, current: 3 },
             health::components::HealthColors {
-                max: LinearRgba::rgb(0.0, 1.0, 0.0),
-                min: LinearRgba::rgb(1.0, 0.0, 0.0),
+                max: healthy_color,
+                min: critical_color,
             },
             health::components::ChangeOnCollision {
                 delta: -1,
-                targets: health::components::Affects::SelfOnly
-            }
+                affected: health::components::Affects::SelfOnly,
+            },
         ))
         .id();
     commands.entity(main).add_child(border);

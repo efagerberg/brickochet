@@ -3,6 +3,7 @@ use bevy::prelude::*;
 pub mod ball;
 pub mod brick;
 pub mod paddle;
+pub mod player;
 pub mod playfield;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]

@@ -1,10 +1,9 @@
 use bevy::prelude::*;
 
 use crate::gameplay::{brick, playfield};
-use crate::{physics};
+use crate::physics;
 
 use test_case::test_case;
-
 
 struct SpawnBrickWallCase {
     goal_size: Vec3,
