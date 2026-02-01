@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::health;
+use crate::{health, rendering};
 
 pub fn handle_health_changed(
     mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
@@ -27,5 +27,34 @@ pub fn handle_death(
 ) {
     for message in messages.read() {
         commands.entity(message.entity).despawn();
+    }
+}
+
+pub fn update_health_color(
+    mut query: Query<(
+        Entity,
+        &health::components::Health,
+        &health::components::HealthColors,
+    )>,
+    mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
+    mut material_colors_changed_messages: MessageWriter<
+        rendering::messages::MaterialColorsChangedMessage,
+    >,
+) {
+    for message in health_changed_messages.read() {
+        if let Ok((entity, health, health_colors)) = query.get_mut(message.entity) {
+            if health.current == 0 {
+                continue;
+            }
+            let t = ((health.current as f32 - 1.0) / (health.max as f32 - 1.0)).clamp(0.0, 1.0);
+            let new_color = Color::from(health_colors.min.mix(&health_colors.max, t));
+            material_colors_changed_messages.write(
+                rendering::messages::MaterialColorsChangedMessage {
+                    entity,
+                    base_color: Some(new_color),
+                    emissive: None,
+                },
+            );
+        }
     }
 }

@@ -16,6 +16,10 @@ impl Plugin for HealthPlugin {
             .add_systems(
                 Update,
                 (systems::handle_health_changed, systems::handle_death),
+            )
+            .add_systems(
+                PostUpdate,
+                (systems::update_health_color,).before(crate::rendering::RenderingSet::Integrate),
             );
     }
 }

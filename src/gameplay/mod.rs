@@ -44,10 +44,7 @@ impl Plugin for GameplayPlugin {
         )
         .add_systems(
             PostUpdate,
-            (
-                playfield::systems::highlight_depth_lines,
-                brick::systems::update_health_color,
-            )
+            (playfield::systems::highlight_depth_lines,)
                 .before(crate::rendering::RenderingSet::Integrate),
         );
     }

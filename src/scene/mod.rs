@@ -288,7 +288,7 @@ fn spawn_paddle(
     let cuboid_dimensions = bounds.half_extents * 2.0;
     commands.spawn((
         gameplay::paddle::components::Paddle,
-        Name::new("Paddle"),
+        Name::new("Player Paddle"),
         bounds,
         gameplay::paddle::components::PaddleMotionRecord::default(),
         gameplay::paddle::components::PaddleImpactModifiers::starting(),
