@@ -37,7 +37,6 @@ impl Plugin for GameplayPlugin {
                 (
                     paddle::systems::apply_paddle_impact_modifiers,
                     playfield::systems::handle_wall_collision,
-                    brick::systems::handle_collision,
                 )
                     .after(crate::physics::PhysicsSet::ResolveCollisions),
             ),

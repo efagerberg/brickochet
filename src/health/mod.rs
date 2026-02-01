@@ -18,8 +18,12 @@ impl Plugin for HealthPlugin {
                 (systems::handle_health_changed, systems::handle_death),
             )
             .add_systems(
+                FixedUpdate,
+                systems::handle_collision.after(crate::physics::PhysicsSet::ResolveCollisions),
+            )
+            .add_systems(
                 PostUpdate,
-                (systems::update_health_color,).before(crate::rendering::RenderingSet::Integrate),
+                systems::update_health_color.before(crate::rendering::RenderingSet::Integrate),
             );
     }
 }

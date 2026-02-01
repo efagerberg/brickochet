@@ -1,40 +1,10 @@
 use bevy::prelude::*;
 
 use crate::gameplay::{brick, playfield};
-use crate::{health, physics, test_utils};
+use crate::{physics};
 
 use test_case::test_case;
 
-#[test]
-fn test_handle_collision_decreases_health() {
-    let mut app = App::new();
-    app.add_message::<health::messages::HealChangedMessage>();
-    app.add_message::<physics::messages::CollisionMessage>();
-    app.add_systems(Update, brick::systems::handle_collision);
-    let entity = app
-        .world_mut()
-        .spawn((
-            health::components::Health { current: 1, max: 1 },
-            brick::components::Brick,
-        ))
-        .id();
-    let collided_with = app.world_mut().spawn_empty().id();
-
-    let mut writer = app
-        .world_mut()
-        .resource_mut::<Messages<physics::messages::CollisionMessage>>();
-    writer.write(physics::messages::CollisionMessage {
-        a: collided_with,
-        b: entity,
-        normal: Vec3::ZERO,
-        contact_point: Vec3::ZERO,
-        penetration: 0.0,
-    });
-    app.update();
-
-    let expected = health::messages::HealChangedMessage { entity, delta: -1 };
-    test_utils::assertions::assert_messages(&app, &vec![expected]);
-}
 
 struct SpawnBrickWallCase {
     goal_size: Vec3,

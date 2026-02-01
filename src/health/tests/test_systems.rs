@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use test_case::test_case;
 
 use crate::health::{components, messages, systems};
-use crate::{rendering, test_utils};
+use crate::{physics, rendering, test_utils};
 
 fn create_health_change_app() -> App {
     let mut app = App::new();
@@ -155,5 +155,91 @@ fn test_update_health_color(case: UpdateHealthColorCase) {
             emissive: None,
         })
     };
+    test_utils::assertions::assert_messages(&app, &expected);
+}
+
+enum Target {
+    SelfOnly,
+    Others,
+    SelfAndOthers,
+}
+
+struct HandleCollisionCase {
+    target: Target,
+    delta: i16,
+}
+
+#[test_case(
+    HandleCollisionCase {
+        target: Target::SelfOnly,
+        delta: 1
+    }; "self only")]
+#[test_case(
+    HandleCollisionCase {
+        target: Target::Others,
+        delta: -1
+    }; "others only")]
+#[test_case(
+    HandleCollisionCase {
+        target: Target::SelfAndOthers,
+        delta: -1
+    }; "self and others")]
+fn test_handle_collision(case: HandleCollisionCase) {
+    let mut app = App::new();
+    app.add_message::<messages::HealChangedMessage>();
+    app.add_message::<physics::messages::CollisionMessage>();
+    app.add_systems(Update, systems::handle_collision);
+
+    let collision_a_entity = app.world_mut().spawn_empty().id();
+    let collision_b_entity = app
+        .world_mut()
+        .spawn(components::Health { current: 1, max: 1 })
+        .id();
+
+    let potential_target_entity = app.world_mut().spawn(components::Health { current: 1, max: 1 }).id();
+    let affects = match case.target {
+        Target::SelfOnly => components::Affects::SelfOnly,
+        Target::Others => components::Affects::Others(vec![potential_target_entity]),
+        Target::SelfAndOthers => components::Affects::SelfAndOthers(vec![potential_target_entity]),
+    };
+
+    app.world_mut()
+        .entity_mut(collision_b_entity)
+        .insert(components::ChangeOnCollision {
+            delta: case.delta,
+            targets: affects.clone(),
+        });
+
+    let affected_targets = match affects {
+        components::Affects::SelfOnly => vec![collision_b_entity],
+        components::Affects::Others(ref v) => v.clone(),
+        components::Affects::SelfAndOthers(ref v) => {
+            let mut vec = vec![collision_b_entity];
+            vec.extend(v.iter().copied());
+            vec
+        }
+    };
+
+    let mut writer = app
+        .world_mut()
+        .resource_mut::<Messages<physics::messages::CollisionMessage>>();
+    writer.write(physics::messages::CollisionMessage {
+        a: collision_a_entity,
+        b: collision_b_entity,
+        normal: Vec3::ZERO,
+        contact_point: Vec3::ZERO,
+        penetration: 0.0,
+    });
+
+    app.update();
+
+    let expected: Vec<_> = affected_targets
+        .into_iter()
+        .map(|e| messages::HealChangedMessage {
+            entity: e,
+            delta: case.delta,
+        })
+        .collect();
+
     test_utils::assertions::assert_messages(&app, &expected);
 }

@@ -99,7 +99,6 @@ fn spawn_brick(
                 position.z,
             )),
             GlobalTransform::default(),
-            health::components::Health { max: 3, current: 3 },
             Mesh3d(meshes.add(Cuboid::new(
                 size.x - border_padding,
                 size.y - border_padding,
@@ -109,30 +108,16 @@ fn spawn_brick(
                 base_color: color,
                 ..default()
             })),
+            health::components::Health { max: 3, current: 3 },
             health::components::HealthColors {
                 max: LinearRgba::rgb(0.0, 1.0, 0.0),
                 min: LinearRgba::rgb(1.0, 0.0, 0.0),
             },
+            health::components::ChangeOnCollision {
+                delta: -1,
+                targets: health::components::Affects::SelfOnly
+            }
         ))
         .id();
     commands.entity(main).add_child(border);
-}
-
-pub fn handle_collision(
-    brick_query: Query<
-        Entity,
-        (
-            With<brick::components::Brick>,
-            With<health::components::Health>,
-        ),
-    >,
-    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
-    mut health_changed_messages: MessageWriter<health::messages::HealChangedMessage>,
-) {
-    for message in collision_messages.read() {
-        if let Ok(entity) = brick_query.get(message.b) {
-            health_changed_messages
-                .write(health::messages::HealChangedMessage { entity, delta: -1 });
-        }
-    }
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{health, rendering};
+use crate::{health, physics, rendering};
 
 pub fn handle_health_changed(
     mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
@@ -55,6 +55,29 @@ pub fn update_health_color(
                     emissive: None,
                 },
             );
+        }
+    }
+}
+
+pub fn handle_collision(
+    collided_query: Query<&health::components::ChangeOnCollision>,
+    health_query: Query<&health::components::Health>,
+    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
+    mut health_changed_messages: MessageWriter<health::messages::HealChangedMessage>,
+) {
+    for message in collision_messages.read() {
+        for &entity in [message.a, message.b].iter() {
+            if let Ok(change_on_collision) = collided_query.get(entity) {
+                for target in change_on_collision.affected_entities(entity) {
+                    if !health_query.contains(target) {
+                        continue;
+                    }
+                    health_changed_messages.write(health::messages::HealChangedMessage {
+                        entity: target,
+                        delta: change_on_collision.delta,
+                    });
+                }
+            }
         }
     }
 }
