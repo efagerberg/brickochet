@@ -12,6 +12,7 @@ pub fn spawn_brick_wall(
     )>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    playfield: Res<playfield::resources::Playfield>,
 ) {
     let (_, enemy_goal_transform, enemy_goal_bounds) = goal_query
         .iter()
@@ -21,10 +22,10 @@ pub fn spawn_brick_wall(
     // Dimensions of the wall
     let wall_width = enemy_goal_bounds.half_extents.x * 2.0;
     let wall_height = enemy_goal_bounds.half_extents.y * 2.0;
-    let wall_z = enemy_goal_transform.translation.z; // depth position
+    let wall_depth = enemy_goal_bounds.half_extents.z * 2.0;
 
     // Brick size (uniform)
-    let brick_size = Vec3::new(4.0, 2.0, 0.25);
+    let brick_size = playfield.brick_size;
 
     // How many bricks fit
     let bricks_x = (wall_width / brick_size.x).floor() as i32;
@@ -40,9 +41,9 @@ pub fn spawn_brick_wall(
         let y = index / bricks_x;
 
         let pos = Vec3::new(
-            enemy_goal_transform.translation.x - total_width / 2.0 + x as f32 * brick_size.x,
-            enemy_goal_transform.translation.y - total_height / 2.0 + y as f32 * brick_size.y,
-            wall_z,
+            enemy_goal_transform.translation.x - total_width * 0.5 + x as f32 * brick_size.x,
+            enemy_goal_transform.translation.y - total_height * 0.5 + y as f32 * brick_size.y,
+            enemy_goal_transform.translation.z + wall_depth + brick_size.z,
         );
 
         let color = Color::linear_rgb(0.0, 1.0, 0.0);
