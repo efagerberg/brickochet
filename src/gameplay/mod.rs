@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::state;
+
 pub mod ball;
 pub mod brick;
 pub mod paddle;
@@ -16,7 +18,7 @@ pub struct GameplayPlugin;
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Startup,
+            OnEnter(state::GameState::Gameplay),
             brick::systems::spawn_brick_wall.in_set(GameplaySet::Initialize),
         )
         .add_systems(
@@ -28,7 +30,12 @@ impl Plugin for GameplayPlugin {
                     paddle::systems::finalize_paddle_motion,
                 )
                     .chain(),
-            ),
+            )
+                .run_if(in_state(state::GameState::Gameplay)),
+        )
+        .add_systems(
+            Update,
+            player::systems::restart_on_player_death.run_if(in_state(state::GameState::Gameplay)),
         )
         .add_systems(
             FixedUpdate,
@@ -39,13 +46,15 @@ impl Plugin for GameplayPlugin {
                     paddle::systems::apply_paddle_impact_modifiers,
                     playfield::systems::handle_wall_collision,
                 )
-                    .after(crate::physics::PhysicsSet::ResolveCollisions),
+                    .after(crate::physics::PhysicsSet::ResolveCollisions)
+                    .run_if(in_state(state::GameState::Gameplay)),
             ),
         )
         .add_systems(
             PostUpdate,
             (playfield::systems::highlight_depth_lines,)
-                .before(crate::rendering::RenderingSet::Integrate),
+                .before(crate::rendering::RenderingSet::Integrate)
+                .run_if(in_state(state::GameState::Gameplay)),
         );
     }
 }

@@ -1,12 +1,15 @@
 use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
-use crate::{gameplay, health, physics};
+use crate::{gameplay, health, physics, state};
 
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup.before(gameplay::GameplaySet::Initialize));
+        app.add_systems(
+            OnEnter(state::GameState::Gameplay),
+            setup.before(gameplay::GameplaySet::Initialize),
+        );
     }
 }
 
@@ -91,6 +94,7 @@ fn spawn_playfield(
             Name::new("Playfield"),
             Transform::default(),
             GlobalTransform::default(),
+            DespawnOnExit(state::GameState::Gameplay),
         ))
         .id();
     for &child in &children {
@@ -288,6 +292,7 @@ fn setup_camera(commands: &mut Commands, playfield_half_size: Vec3) {
         }),
         Transform::from_xyz(0.0, 0.0, playfield_half_size.z + 9.0)
             .looking_at(Vec3::new(0.0, 0.0, -playfield_half_size.z), Vec3::Y),
+        DespawnOnExit(state::GameState::Gameplay),
     ));
 }
 
@@ -328,6 +333,7 @@ fn spawn_paddle(
                 max: healthy_color,
                 min: critical_color,
             },
+            DespawnOnExit(state::GameState::Gameplay),
         ))
         .id()
 }
@@ -350,6 +356,7 @@ fn spawn_ball(
         GlobalTransform::default(),
         Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
+        DespawnOnExit(state::GameState::Gameplay),
     ));
 }
 
@@ -361,5 +368,6 @@ fn setup_lighting(commands: &mut Commands) {
             ..default()
         },
         Transform::from_rotation(Quat::from_rotation_x(-0.7)),
+        DespawnOnExit(state::GameState::Gameplay),
     ));
 }

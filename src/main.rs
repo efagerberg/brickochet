@@ -5,9 +5,11 @@ use bevy_inspector_egui::{bevy_egui, quick};
 mod gameplay;
 mod health;
 mod input;
+mod main_menu;
 mod physics;
 mod rendering;
 mod scene;
+mod state;
 
 #[cfg(test)]
 mod test_utils;
@@ -26,6 +28,7 @@ fn main() {
         //     diagnostic::FrameTimeDiagnosticsPlugin::default(),
         //     diagnostic::LogDiagnosticsPlugin::default(),
         // ))
+        .init_state::<state::GameState>()
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
         .add_plugins((
@@ -34,6 +37,7 @@ fn main() {
             physics::PhysicsPlugin,
             rendering::RenderingPlugin,
             health::HealthPlugin,
+            main_menu::plugin,
         ))
         .add_systems(Update, input::systems::grab_mouse)
         .run();
