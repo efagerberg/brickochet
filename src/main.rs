@@ -32,13 +32,13 @@ fn main() {
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(quick::WorldInspectorPlugin::default())
         .add_plugins((
-            scene::ScenePlugin,
-            gameplay::GameplayPlugin,
-            physics::PhysicsPlugin,
-            rendering::RenderingPlugin,
-            health::HealthPlugin,
+            scene::plugin,
+            gameplay::plugin,
+            physics::plugin,
+            rendering::plugin,
+            health::plugin,
             main_menu::plugin,
+            input::plugin,
         ))
-        .add_systems(Update, input::systems::grab_mouse)
         .run();
 }

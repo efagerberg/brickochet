@@ -2,15 +2,11 @@ use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
 use crate::{gameplay, health, physics, state};
 
-pub struct ScenePlugin;
-
-impl Plugin for ScenePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(
-            OnEnter(state::GameState::Gameplay),
-            setup.before(gameplay::GameplaySet::Initialize),
-        );
-    }
+pub fn plugin(app: &mut App) {
+    app.add_systems(
+        OnEnter(state::GameState::Gameplay),
+        setup.before(gameplay::GameplaySet::Initialize),
+    );
 }
 
 pub fn setup(

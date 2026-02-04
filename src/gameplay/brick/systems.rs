@@ -46,15 +46,7 @@ pub fn spawn_brick_wall(
             enemy_goal_transform.translation.z + wall_depth + brick_size.z,
         );
 
-        let color = Color::linear_rgb(0.0, 1.0, 0.0);
-        spawn_brick(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            pos,
-            brick_size,
-            color,
-        );
+        spawn_brick(&mut commands, &mut meshes, &mut materials, pos, brick_size);
     }
 }
 
@@ -64,7 +56,6 @@ fn spawn_brick(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     position: Vec3,
     size: Vec3,
-    _color: Color,
 ) {
     // Outer black border (slightly larger)
     let border_padding = 0.25;
