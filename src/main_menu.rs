@@ -44,7 +44,11 @@ pub fn button_system(mut interaction_query: Query<MenuButtonInteraction, RecentB
 }
 
 pub fn menu_setup(mut commands: Commands, mut menu_state: ResMut<NextState<MenuState>>) {
-    commands.spawn((Camera2d, DespawnOnExit(state::GameState::Menu)));
+    commands.spawn((
+        Camera2d,
+        bevy_inspector_egui::bevy_egui::PrimaryEguiContext,
+        DespawnOnExit(state::GameState::Menu),
+    ));
     menu_state.set(MenuState::Main);
 }
 

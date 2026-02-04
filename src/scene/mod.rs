@@ -288,6 +288,7 @@ fn setup_camera(commands: &mut Commands, playfield_half_size: Vec3) {
         }),
         Transform::from_xyz(0.0, 0.0, playfield_half_size.z + 9.0)
             .looking_at(Vec3::new(0.0, 0.0, -playfield_half_size.z), Vec3::Y),
+        bevy_inspector_egui::bevy_egui::PrimaryEguiContext,
         DespawnOnExit(state::GameState::Gameplay),
     ));
 }
