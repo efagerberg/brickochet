@@ -18,9 +18,11 @@ struct ButtonTestCase {
 fn setup_button_test(interaction: Interaction, selected: bool) -> (App, Entity) {
     let mut app = App::new();
 
-    app.add_plugins(MinimalPlugins)
-        .add_plugins(bevy::state::app::StatesPlugin);
-    app.init_state::<states::MenuState>();
+    app.add_plugins((
+        MinimalPlugins,
+        bevy::state::app::StatesPlugin,
+        states::plugin,
+    ));
     app.add_systems(Update, systems::button_system);
 
     let entity = app
@@ -65,11 +67,12 @@ struct MenuActionTestCase {
 fn setup_menu_action_test(case: &MenuActionTestCase) -> (App, Entity) {
     let mut app = App::new();
 
-    app.add_plugins(MinimalPlugins);
-    app.add_plugins(bevy::state::app::StatesPlugin);
+    app.add_plugins((
+        MinimalPlugins,
+        bevy::state::app::StatesPlugin,
+        states::plugin,
+    ));
     app.add_systems(Update, systems::menu_action);
-    app.init_state::<states::GameState>();
-    app.init_state::<states::MenuState>();
 
     let entity = app
         .world_mut()

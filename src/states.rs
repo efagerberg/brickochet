@@ -14,3 +14,8 @@ pub enum MenuState {
     #[default]
     Disabled,
 }
+
+pub fn plugin(app: &mut App) {
+    app.init_state::<GameState>();
+    app.init_state::<MenuState>();
+}

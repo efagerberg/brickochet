@@ -9,8 +9,7 @@ pub mod components;
 pub mod systems;
 
 pub fn plugin(app: &mut App) {
-    app.init_state::<states::MenuState>()
-        .add_systems(OnEnter(states::GameState::Menu), systems::menu_setup)
+    app.add_systems(OnEnter(states::GameState::Menu), systems::menu_setup)
         .add_systems(
             Update,
             (systems::menu_action, systems::button_system)

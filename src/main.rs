@@ -24,9 +24,9 @@ fn main() {
         }),
         ..default()
     }))
-    .init_state::<states::GameState>()
     .add_plugins(bevy_egui::EguiPlugin::default())
     .add_plugins((
+        states::plugin,
         scene::plugin,
         gameplay::plugin,
         physics::plugin,
