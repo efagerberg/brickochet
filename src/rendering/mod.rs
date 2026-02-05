@@ -11,15 +11,11 @@ pub enum RenderingSet {
     Integrate,
 }
 
-pub struct RenderingPlugin;
-
-impl Plugin for RenderingPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_message::<messages::MaterialColorsChangedMessage>()
-            .configure_sets(PostUpdate, RenderingSet::Integrate)
-            .add_systems(
-                PostUpdate,
-                systems::update_material_color.in_set(RenderingSet::Integrate),
-            );
-    }
+pub fn plugin(app: &mut App) {
+    app.add_message::<messages::MaterialColorsChangedMessage>()
+        .configure_sets(PostUpdate, RenderingSet::Integrate)
+        .add_systems(
+            PostUpdate,
+            systems::update_material_color.in_set(RenderingSet::Integrate),
+        );
 }

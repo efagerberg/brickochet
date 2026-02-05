@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::gameplay::{brick, playfield};
-use crate::{health, physics, rendering};
+use crate::{health, physics, states};
 
 pub fn spawn_brick_wall(
     mut commands: Commands,
@@ -46,15 +46,7 @@ pub fn spawn_brick_wall(
             enemy_goal_transform.translation.z + wall_depth + brick_size.z,
         );
 
-        let color = Color::linear_rgb(0.0, 1.0, 0.0);
-        spawn_brick(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            pos,
-            brick_size,
-            color,
-        );
+        spawn_brick(&mut commands, &mut meshes, &mut materials, pos, brick_size);
     }
 }
 
@@ -64,7 +56,6 @@ fn spawn_brick(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     position: Vec3,
     size: Vec3,
-    color: Color,
 ) {
     // Outer black border (slightly larger)
     let border_padding = 0.25;
@@ -85,6 +76,9 @@ fn spawn_brick(
         ))
         .id();
 
+    let healthy_color = LinearRgba::rgb(0.0, 1.0, 0.0);
+    let critical_color = LinearRgba::rgb(1.0, 0.0, 0.0);
+
     // Main colored brick
     let main = commands
         .spawn((
@@ -99,64 +93,26 @@ fn spawn_brick(
                 position.z,
             )),
             GlobalTransform::default(),
-            health::components::Health { max: 3, current: 3 },
             Mesh3d(meshes.add(Cuboid::new(
                 size.x - border_padding,
                 size.y - border_padding,
                 size.z,
             ))),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: color,
+                base_color: Color::from(healthy_color),
                 ..default()
             })),
+            health::components::Health { max: 3, current: 3 },
+            health::components::HealthColors {
+                max: healthy_color,
+                min: critical_color,
+            },
+            health::components::ChangeOnCollision {
+                delta: -1,
+                affected: health::components::Affects::SelfOnly,
+            },
+            DespawnOnExit(states::GameState::Gameplay),
         ))
         .id();
     commands.entity(main).add_child(border);
-}
-
-pub fn handle_collision(
-    brick_query: Query<
-        Entity,
-        (
-            With<brick::components::Brick>,
-            With<health::components::Health>,
-        ),
-    >,
-    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
-    mut health_changed_messages: MessageWriter<health::messages::HealChangedMessage>,
-) {
-    for message in collision_messages.read() {
-        if let Ok(entity) = brick_query.get(message.b) {
-            health_changed_messages
-                .write(health::messages::HealChangedMessage { entity, delta: -1 });
-        }
-    }
-}
-
-pub fn update_health_color(
-    mut brick_query: Query<(Entity, &health::components::Health), With<brick::components::Brick>>,
-    mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
-    mut material_colors_changed_messages: MessageWriter<
-        rendering::messages::MaterialColorsChangedMessage,
-    >,
-) {
-    let max_color = &LinearRgba::rgb(0.0, 1.0, 0.0);
-    let min_color = LinearRgba::rgb(1.0, 0.0, 0.0);
-
-    for message in health_changed_messages.read() {
-        if let Ok((entity, health)) = brick_query.get_mut(message.entity) {
-            if health.current == 0 {
-                continue;
-            }
-            let t = ((health.current as f32 - 1.0) / (health.max as f32 - 1.0)).clamp(0.0, 1.0);
-            let new_color = Color::from(min_color.mix(max_color, t));
-            material_colors_changed_messages.write(
-                rendering::messages::MaterialColorsChangedMessage {
-                    entity,
-                    base_color: Some(new_color),
-                    emissive: None,
-                },
-            );
-        }
-    }
 }

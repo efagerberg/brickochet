@@ -94,7 +94,7 @@ struct UpdateMaterialColorCase {
     };
     "messages ignored for entity without material"
 )]
-fn update_material_color_system(case: UpdateMaterialColorCase) {
+fn test_update_material_color_system(case: UpdateMaterialColorCase) {
     let (mut app, material_handle, entity) = setup_update_material_color(case.has_material);
 
     let mut messages_res = app

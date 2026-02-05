@@ -1,13 +1,12 @@
 use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
-use crate::{gameplay, physics};
+use crate::{gameplay, health, physics, states};
 
-pub struct ScenePlugin;
-
-impl Plugin for ScenePlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup.before(gameplay::GameplaySet::Initialize));
-    }
+pub fn plugin(app: &mut App) {
+    app.add_systems(
+        OnEnter(states::GameState::Gameplay),
+        setup.before(gameplay::GameplaySet::Initialize),
+    );
 }
 
 pub fn setup(
@@ -16,20 +15,23 @@ pub fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let playfield_half_size = Vec3::new(10.0, 5.0, 20.0);
+
+    let paddle = spawn_paddle(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        playfield_half_size,
+    );
+    let players = vec![paddle];
     spawn_playfield(
         &mut commands,
         &mut meshes,
         &mut materials,
+        &players,
         playfield_half_size,
     );
     setup_camera(&mut commands, playfield_half_size);
     setup_lighting(&mut commands);
-    spawn_paddle(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        playfield_half_size,
-    );
     spawn_ball(&mut commands, &mut meshes, &mut materials);
 }
 
@@ -37,6 +39,7 @@ fn spawn_playfield(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    players: &[Entity],
     half_size: Vec3,
 ) -> gameplay::playfield::resources::Playfield {
     let wall_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
@@ -77,6 +80,7 @@ fn spawn_playfield(
         meshes,
         (wall_material.clone(), clear_wall_material.clone()),
         &mut children,
+        players,
         half_size,
         0.1,
     );
@@ -86,6 +90,7 @@ fn spawn_playfield(
             Name::new("Playfield"),
             Transform::default(),
             GlobalTransform::default(),
+            DespawnOnExit(states::GameState::Gameplay),
         ))
         .id();
     for &child in &children {
@@ -167,6 +172,7 @@ fn spawn_playfield_walls(
     meshes: &mut ResMut<Assets<Mesh>>,
     wall_materials: (Handle<StandardMaterial>, Handle<StandardMaterial>),
     children: &mut Vec<Entity>,
+    players: &[Entity],
     playfield_half_size: Vec3,
     wall_thickness: f32,
 ) {
@@ -219,10 +225,16 @@ fn spawn_playfield_walls(
                 (2, 1.0) => "Far",
                 _ => "Wall",
             };
-            let goal = match (axis, side) {
-                (2, -1.0) => Some(gameplay::playfield::components::Goal::Enemy),
-                (2, 1.0) => Some(gameplay::playfield::components::Goal::Player),
-                _ => None,
+            let (goal, change_on_collision) = match (axis, side) {
+                (2, -1.0) => (Some(gameplay::playfield::components::Goal::Enemy), None),
+                (2, 1.0) => (
+                    Some(gameplay::playfield::components::Goal::Player),
+                    Some(health::components::ChangeOnCollision {
+                        delta: -1,
+                        affected: health::components::Affects::Others(players.to_vec()),
+                    }),
+                ),
+                _ => (None, None),
             };
 
             let material = if (axis, side) == (2, 1.0) {
@@ -245,6 +257,9 @@ fn spawn_playfield_walls(
 
             if let Some(goal) = goal {
                 commands.entity(wall_entity).insert(goal);
+            }
+            if let Some(coll) = change_on_collision {
+                commands.entity(wall_entity).insert(coll);
             }
             children.push(wall_entity);
         }
@@ -273,6 +288,8 @@ fn setup_camera(commands: &mut Commands, playfield_half_size: Vec3) {
         }),
         Transform::from_xyz(0.0, 0.0, playfield_half_size.z + 9.0)
             .looking_at(Vec3::new(0.0, 0.0, -playfield_half_size.z), Vec3::Y),
+        bevy_inspector_egui::bevy_egui::PrimaryEguiContext,
+        DespawnOnExit(states::GameState::Gameplay),
     ));
 }
 
@@ -281,26 +298,41 @@ fn spawn_paddle(
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
     playfield_half_size: Vec3,
-) {
+) -> Entity {
     let bounds = physics::components::BoundingCuboid {
         half_extents: Vec3::new(2.0, 1.0, 0.1),
     };
     let cuboid_dimensions = bounds.half_extents * 2.0;
-    commands.spawn((
-        gameplay::paddle::components::Paddle,
-        Name::new("Paddle"),
-        bounds,
-        gameplay::paddle::components::PaddleMotionRecord::default(),
-        gameplay::paddle::components::PaddleImpactModifiers::starting(),
-        Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 4.0),
-        GlobalTransform::default(),
-        Mesh3d(meshes.add(Cuboid::new(
-            cuboid_dimensions.x,
-            cuboid_dimensions.y,
-            cuboid_dimensions.z,
-        ))),
-        MeshMaterial3d(materials.add(Color::srgba_u8(124, 144, 255, 150))),
-    ));
+    let healthy_color = LinearRgba::new(0.5, 0.7, 1.0, 0.65);
+    let critical_color = LinearRgba::new(1.0, 0.0, 0.0, 0.65);
+    commands
+        .spawn((
+            gameplay::paddle::components::Paddle,
+            Name::new("Player Paddle"),
+            bounds,
+            gameplay::paddle::components::PaddleMotionRecord::default(),
+            gameplay::paddle::components::PaddleImpactModifiers::starting(),
+            Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 4.0),
+            GlobalTransform::default(),
+            Mesh3d(meshes.add(Cuboid::new(
+                cuboid_dimensions.x,
+                cuboid_dimensions.y,
+                cuboid_dimensions.z,
+            ))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::from(healthy_color),
+                alpha_mode: AlphaMode::Blend,
+                ..default()
+            })),
+            gameplay::player::components::Player {},
+            health::components::Health { max: 3, current: 3 },
+            health::components::HealthColors {
+                max: healthy_color,
+                min: critical_color,
+            },
+            DespawnOnExit(states::GameState::Gameplay),
+        ))
+        .id()
 }
 
 fn spawn_ball(
@@ -321,6 +353,7 @@ fn spawn_ball(
         GlobalTransform::default(),
         Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
+        DespawnOnExit(states::GameState::Gameplay),
     ));
 }
 
@@ -332,5 +365,6 @@ fn setup_lighting(commands: &mut Commands) {
             ..default()
         },
         Transform::from_rotation(Quat::from_rotation_x(-0.7)),
+        DespawnOnExit(states::GameState::Gameplay),
     ));
 }
