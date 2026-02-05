@@ -37,7 +37,8 @@ fn main() {
     ))
     .add_systems(Startup, setup_egui_settings);
 
-    #[cfg(debug_assertions)] {
+    #[cfg(debug_assertions)]
+    {
         app.add_plugins(quick::WorldInspectorPlugin::default());
     }
 

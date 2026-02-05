@@ -1,15 +1,20 @@
 use bevy::color::palettes::css::CRIMSON;
 use bevy::prelude::*;
 
-use crate::states;
 use crate::main_menu::components;
+use crate::states;
 
 pub const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 pub const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 pub const HOVERED_PRESSED_BUTTON: Color = Color::srgb(0.25, 0.65, 0.25);
 pub const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
-pub fn button_system(mut interaction_query: Query<components::MenuButtonInteraction, components::RecentButtonInteraction>) {
+pub fn button_system(
+    mut interaction_query: Query<
+        components::MenuButtonInteraction,
+        components::RecentButtonInteraction,
+    >,
+) {
     for (interaction, mut background_color, selected) in &mut interaction_query {
         *background_color = match (*interaction, selected) {
             (Interaction::Pressed, _) | (Interaction::None, Some(_)) => PRESSED_BUTTON.into(),

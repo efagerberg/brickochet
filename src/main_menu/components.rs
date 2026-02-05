@@ -9,7 +9,6 @@ pub enum MenuButtonAction {
 #[derive(Component)]
 pub struct SelectedOption;
 
-
 pub type MenuInteraction<'a> = (&'a Interaction, &'a MenuButtonAction);
 pub type MenuButtonInteraction<'a> = (
     &'a Interaction,

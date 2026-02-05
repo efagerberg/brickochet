@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use test_case::test_case;
 
+use crate::main_menu::{components, systems};
 use crate::states;
 use crate::test_utils;
-use crate::main_menu::{systems, components};
 
 /// A struct representing a single test case for the button system
 #[derive(Debug)]
@@ -23,14 +23,18 @@ fn setup_button_test(interaction: Interaction, selected: bool) -> (App, Entity) 
     app.init_state::<states::MenuState>();
     app.add_systems(Update, systems::button_system);
 
-    let entity = app.world_mut().spawn(Button)
-        .insert(BackgroundColor(systems::NORMAL_BUTTON
-        ))
+    let entity = app
+        .world_mut()
+        .spawn(Button)
+        .insert(BackgroundColor(systems::NORMAL_BUTTON))
         .insert(components::MenuButtonAction::Play)
-        .insert(interaction).id();
+        .insert(interaction)
+        .id();
 
     if selected {
-        app.world_mut().entity_mut(entity).insert(components::SelectedOption);
+        app.world_mut()
+            .entity_mut(entity)
+            .insert(components::SelectedOption);
     }
 
     (app, entity)
@@ -67,7 +71,10 @@ fn setup_menu_action_test(case: &MenuActionTestCase) -> (App, Entity) {
     app.init_state::<states::GameState>();
     app.init_state::<states::MenuState>();
 
-    let entity = app.world_mut().spawn((Button, case.action, case.interaction)).id();
+    let entity = app
+        .world_mut()
+        .spawn((Button, case.action, case.interaction))
+        .id();
 
     (app, entity)
 }

@@ -16,6 +16,7 @@ pub struct HealthColors {
 pub enum Affects {
     SelfOnly,
     Others(Vec<Entity>),
+    #[allow(dead_code)]
     SelfAndOthers(Vec<Entity>),
 }
 
