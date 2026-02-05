@@ -66,7 +66,7 @@ fn test_health_change(case: HealthChangedCase) {
 }
 
 #[test]
-fn death_message_removes_entity() {
+fn test_death_message_removes_entity() {
     let mut app = create_death_app();
     let entity = app.world_mut().spawn_empty().id();
 
@@ -78,7 +78,7 @@ fn death_message_removes_entity() {
 }
 
 #[test]
-fn no_death_message_keeps_entity_alive() {
+fn test_no_death_message_keeps_entity_alive() {
     let mut app = create_death_app();
     let entity = app.world_mut().spawn_empty().id();
 

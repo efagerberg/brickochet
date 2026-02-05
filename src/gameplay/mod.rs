@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::state;
+use crate::states;
 
 pub mod ball;
 pub mod brick;
@@ -15,10 +15,10 @@ pub enum GameplaySet {
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
-        OnEnter(state::GameState::Gameplay),
+        OnEnter(states::GameState::Gameplay),
         brick::systems::spawn_brick_wall
             .in_set(GameplaySet::Initialize)
-            .run_if(in_state(state::GameState::Gameplay)),
+            .run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
         Update,
@@ -30,11 +30,11 @@ pub fn plugin(app: &mut App) {
             )
                 .chain(),
         )
-            .run_if(in_state(state::GameState::Gameplay)),
+            .run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
         Update,
-        player::systems::restart_on_player_death.run_if(in_state(state::GameState::Gameplay)),
+        player::systems::restart_on_player_death.run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
         FixedUpdate,
@@ -46,13 +46,13 @@ pub fn plugin(app: &mut App) {
                 playfield::systems::handle_wall_collision,
             )
                 .after(crate::physics::PhysicsSet::ResolveCollisions)
-                .run_if(in_state(state::GameState::Gameplay)),
+                .run_if(in_state(states::GameState::Gameplay)),
         ),
     )
     .add_systems(
         PostUpdate,
         (playfield::systems::highlight_depth_lines,)
             .before(crate::rendering::RenderingSet::Integrate)
-            .run_if(in_state(state::GameState::Gameplay)),
+            .run_if(in_state(states::GameState::Gameplay)),
     );
 }

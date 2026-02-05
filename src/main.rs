@@ -9,7 +9,7 @@ mod main_menu;
 mod physics;
 mod rendering;
 mod scene;
-mod state;
+mod states;
 
 #[cfg(test)]
 mod test_utils;
@@ -24,7 +24,7 @@ fn main() {
         }),
         ..default()
     }))
-    .init_state::<state::GameState>()
+    .init_state::<states::GameState>()
     .add_plugins(bevy_egui::EguiPlugin::default())
     .add_plugins((
         scene::plugin,
@@ -37,8 +37,9 @@ fn main() {
     ))
     .add_systems(Startup, setup_egui_settings);
 
-    #[cfg(debug_assertions)]
-    app.add_plugins(quick::WorldInspectorPlugin::default());
+    #[cfg(debug_assertions)] {
+        app.add_plugins(quick::WorldInspectorPlugin::default());
+    }
 
     app.run();
 }

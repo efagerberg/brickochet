@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::gameplay::{brick, playfield};
-use crate::{health, physics, state};
+use crate::{health, physics, states};
 
 pub fn spawn_brick_wall(
     mut commands: Commands,
@@ -111,7 +111,7 @@ fn spawn_brick(
                 delta: -1,
                 affected: health::components::Affects::SelfOnly,
             },
-            DespawnOnExit(state::GameState::Gameplay),
+            DespawnOnExit(states::GameState::Gameplay),
         ))
         .id();
     commands.entity(main).add_child(border);
