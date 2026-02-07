@@ -10,7 +10,7 @@ pub mod systems;
 mod tests;
 
 pub fn plugin(app: &mut App) {
-    app.add_message::<messages::HealChangedMessage>()
+    app.add_message::<messages::HealthChangedMessage>()
         .add_message::<messages::DeathMessage>()
         .add_systems(
             Update,

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Message, Copy, Clone, PartialEq, Debug)]
-pub struct HealChangedMessage {
+pub struct HealthChangedMessage {
     pub entity: Entity,
     pub delta: i16,
 }
