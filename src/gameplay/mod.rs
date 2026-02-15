@@ -14,7 +14,12 @@ pub enum GameplaySet {
 }
 
 pub fn plugin(app: &mut App) {
+    // app.init_asset::<brick::assets::BrickAsset>();
     app.add_systems(
+        OnEnter(states::GameState::LoadingAssets),
+        brick::systems::load_brick_assets,
+    )
+    .add_systems(
         OnEnter(states::GameState::Gameplay),
         brick::systems::spawn_brick_wall
             .in_set(GameplaySet::Initialize)

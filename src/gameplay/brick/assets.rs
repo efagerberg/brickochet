@@ -1,50 +1,51 @@
 use bevy::prelude::*;
-use serde::Deserialize;
+use serde;
 
-#[derive(Asset, TypePath, Deserialize)]
+#[derive(serde::Deserialize, bevy::asset::Asset, bevy::reflect::TypePath)]
 pub struct BrickAsset {
-    pub health: i8,
+    pub name: String,
+    pub health: u8,
     pub icon: String,
     pub ricochet: RicochetEffectAsset,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub struct RicochetEffectAsset {
     pub driver: EffectDriver,
     pub presentation: RicochetEffectPresentation,
     pub effect: RicochetEffectDef,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub enum EffectDriver {
     Time,
     Distance,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub struct RicochetEffectPresentation {
     pub sfx: Option<String>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub enum RicochetEffectDef {
     Speed(ScalarCurve),
     Size(ScalarCurve),
     Curve(Vec2Curve),
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub struct Keyframe<T> {
     pub t: f32,
     pub value: T,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub struct ScalarCurve {
     pub keyframes: Vec<Keyframe<f32>>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 pub struct Vec2Curve {
     pub keyframes: Vec<Keyframe<Vec2>>,
 }

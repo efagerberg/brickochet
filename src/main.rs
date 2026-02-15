@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 use bevy::window;
+use bevy_common_assets::ron;
 use bevy_inspector_egui::{bevy_egui, quick};
+
+use crate::gameplay::brick;
 
 mod gameplay;
 mod health;
 mod input;
+mod loading;
 mod main_menu;
 mod physics;
 mod rendering;
@@ -25,8 +29,12 @@ fn main() {
         ..default()
     }))
     .add_plugins(bevy_egui::EguiPlugin::default())
+    .add_plugins(ron::RonAssetPlugin::<brick::assets::BrickAsset>::new(&[
+        "brick.ron",
+    ]))
     .add_plugins((
         states::plugin,
+        loading::plugin,
         scene::plugin,
         gameplay::plugin,
         physics::plugin,

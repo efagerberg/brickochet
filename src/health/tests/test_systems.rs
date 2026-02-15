@@ -48,10 +48,11 @@ fn test_health_change(case: HealthChangedCase) {
     let mut app = create_health_change_app();
     let entity = app.world_mut().spawn(case.starting_health).id();
 
-    app.world_mut().write_message(messages::HealthChangedMessage {
-        entity,
-        delta: case.delta,
-    });
+    app.world_mut()
+        .write_message(messages::HealthChangedMessage {
+            entity,
+            delta: case.delta,
+        });
     app.update();
 
     let health = app.world().get::<components::Health>(entity).unwrap();

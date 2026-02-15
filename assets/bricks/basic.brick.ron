@@ -1,0 +1,20 @@
+(
+    name: "Basic Brick",
+    health: 3,
+    icon: "textures/brick_icon.png",
+    ricochet: (
+        driver: Time,
+        presentation: (
+            sfx: Some("sounds/ricochet.wav"),
+        ),
+        effect: Speed(
+            ScalarCurve(
+                keyframes: [
+                    (t: 0.0, value: 0.0),
+                    (t: 0.5, value: 10.0),
+                    (t: 1.0, value: 0.0),
+                ],
+            ),
+        ),
+    ),
+)

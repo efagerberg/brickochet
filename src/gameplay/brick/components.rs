@@ -9,10 +9,10 @@ pub struct Brick;
 pub struct RicochetEffect {
     pub driver: assets::EffectDriver,
     pub presentation: RicochetEffectPresentation,
-    pub effect: assets::RicochetEffectDef
+    pub effect: assets::RicochetEffectDef,
 }
 
 #[derive(Component)]
 pub struct RicochetEffectPresentation {
-    pub sfx: Option<Handle<AudioSource>>
+    pub sfx: Option<Handle<AudioSource>>,
 }

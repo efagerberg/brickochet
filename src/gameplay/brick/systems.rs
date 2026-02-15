@@ -1,7 +1,13 @@
+use bevy::asset::LoadedFolder;
 use bevy::prelude::*;
 
 use crate::gameplay::{brick, playfield};
 use crate::{health, physics, states};
+
+pub fn load_brick_assets(mut commands: Commands, server: Res<AssetServer>) {
+    let brick_assets = server.load_folder("bricks/");
+    commands.insert_resource(brick::resources::BrickFolder(brick_assets));
+}
 
 pub fn spawn_brick_wall(
     mut commands: Commands,
@@ -12,6 +18,9 @@ pub fn spawn_brick_wall(
     )>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    brick_folder: Res<brick::resources::BrickFolder>,
+    brick_assets: ResMut<Assets<brick::assets::BrickAsset>>,
+    loaded_folders: Res<Assets<LoadedFolder>>,
     playfield: Res<playfield::resources::Playfield>,
 ) {
     let (_, enemy_goal_transform, enemy_goal_bounds) = goal_query
@@ -30,12 +39,21 @@ pub fn spawn_brick_wall(
     // How many bricks fit
     let bricks_x = (wall_width / brick_size.x).floor() as i32;
     let bricks_y = (wall_height / brick_size.y).floor() as i32;
+    let total_bricks = bricks_x * bricks_y;
 
     // Total grid size
     let total_width = bricks_x as f32 * brick_size.x;
     let total_height = bricks_y as f32 * brick_size.y;
 
-    let total_bricks = bricks_x * bricks_y;
+    let brick_asset_folder = loaded_folders.get(&brick_folder.0).unwrap();
+    let brick_handles: Vec<Handle<brick::assets::BrickAsset>> = brick_asset_folder
+        .handles
+        .iter()
+        .map(|x: &UntypedHandle| x.clone().typed())
+        .collect();
+
+    let mut asset_index = 0;
+
     for index in 0..total_bricks {
         let x = index % bricks_x;
         let y = index / bricks_x;
@@ -46,7 +64,17 @@ pub fn spawn_brick_wall(
             enemy_goal_transform.translation.z + wall_depth + brick_size.z,
         );
 
-        spawn_brick(&mut commands, &mut meshes, &mut materials, pos, brick_size);
+        if let Some(brick_asset) = brick_assets.get(brick_handles[asset_index].id()) {
+            spawn_brick(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                pos,
+                brick_size,
+                brick_asset,
+            );
+        }
+        asset_index = ((index as usize) + 1) % brick_assets.len();
     }
 }
 
@@ -56,6 +84,7 @@ fn spawn_brick(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     position: Vec3,
     size: Vec3,
+    brick_asset: &brick::assets::BrickAsset,
 ) {
     // Outer black border (slightly larger)
     let border_padding = 0.25;
@@ -102,7 +131,10 @@ fn spawn_brick(
                 base_color: Color::from(healthy_color),
                 ..default()
             })),
-            health::components::Health { max: 3, current: 3 },
+            health::components::Health {
+                max: brick_asset.health,
+                current: brick_asset.health,
+            },
             health::components::HealthColors {
                 max: healthy_color,
                 min: critical_color,
