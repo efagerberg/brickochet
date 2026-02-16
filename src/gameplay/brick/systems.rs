@@ -1,7 +1,7 @@
 use bevy::asset;
 use bevy::prelude::*;
 
-use crate::gameplay::ball;
+use crate::audio;
 use crate::gameplay::{brick, playfield};
 use crate::{asset_loading, health, physics, states};
 
@@ -149,44 +149,16 @@ fn spawn_brick(
                 affected: health::components::Affects::SelfOnly,
             },
             brick::components::RicochetEffectPresentation {
-                sfx: sfx_optional_handle,
+                sfx: sfx_optional_handle.clone(),
             },
             DespawnOnExit(states::GameState::Gameplay),
         ))
         .id();
+
+    if let Some(sfx) = sfx_optional_handle.clone() {
+        commands
+            .entity(main)
+            .insert(audio::components::CollisionSFX(sfx));
+    }
     commands.entity(main).add_child(border);
-}
-
-pub fn apply_richochet_effect(
-    brick_query: Query<&brick::components::RicochetEffect, With<brick::components::Brick>>,
-    ball_query: Query<&ball::components::BallModifiers, Without<brick::components::Brick>>,
-    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
-) {
-    for message in collision_messages.read() {
-        let ball = ball_query.get(message.a);
-        let brick = brick_query.get(message.b);
-    }
-}
-
-pub fn present_richochet(
-    mut commands: Commands,
-    presentation_query: Query<&brick::components::RicochetEffectPresentation>,
-    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
-) {
-    for message in collision_messages.read() {
-        for &entity in [message.a, message.b].iter() {
-            if let Some(handle) = presentation_query
-                .get(entity)
-                .ok()
-                .and_then(|p| p.sfx.clone())
-            {
-                commands
-                    .spawn_empty()
-                    .insert((AudioPlayer::new(handle), PlaybackSettings::DESPAWN));
-            } else {
-                // Optional: log warning if no sound effect is found
-                warn!("No sound effect found for entity {:?}", entity);
-            }
-        }
-    }
 }

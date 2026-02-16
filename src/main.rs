@@ -6,6 +6,7 @@ use bevy_inspector_egui::{bevy_egui, quick};
 use crate::gameplay::brick;
 
 mod asset_loading;
+mod audio;
 mod gameplay;
 mod health;
 mod input;
@@ -33,6 +34,7 @@ fn main() {
         "brick.ron",
     ]))
     .add_plugins((
+        audio::plugin,
         states::plugin,
         asset_loading::plugin,
         scene::plugin,

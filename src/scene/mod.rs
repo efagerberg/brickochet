@@ -1,6 +1,6 @@
 use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
 
-use crate::{gameplay, health, physics, states};
+use crate::{audio, gameplay, health, physics, states};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
@@ -13,6 +13,7 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     let playfield_half_size = Vec3::new(10.0, 5.0, 20.0);
 
@@ -32,7 +33,7 @@ pub fn setup(
     );
     setup_camera(&mut commands, playfield_half_size);
     setup_lighting(&mut commands);
-    spawn_ball(&mut commands, &mut meshes, &mut materials);
+    spawn_ball(&mut commands, &mut meshes, &mut materials, asset_server);
 }
 
 fn spawn_playfield(
@@ -339,6 +340,7 @@ fn spawn_ball(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     let ball_modifiers = gameplay::ball::components::BallModifiers::starting();
     commands.spawn((
@@ -354,6 +356,11 @@ fn spawn_ball(
         Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
         DespawnOnExit(states::GameState::Gameplay),
+        audio::components::CollisionSFX(
+            asset_server
+                .get_handle::<AudioSource>("audio/tennisBallHit.ogg")
+                .unwrap(),
+        ),
     ));
 }
 

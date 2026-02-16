@@ -18,8 +18,8 @@ pub struct RicochetEffectAsset {
 
 #[derive(Clone, serde::Deserialize)]
 pub enum EffectDriver {
-    Time,
-    Distance,
+    Time { duration_seconds: f32 },
+    Distance { total_meters: f32 },
 }
 
 #[derive(Clone, serde::Deserialize)]

@@ -15,3 +15,9 @@ pub struct RicochetEffect {
 pub struct RicochetEffectPresentation {
     pub sfx: Option<Handle<AudioSource>>,
 }
+
+#[derive(Component)]
+pub struct RicochetEffectState {
+    pub start: f32,
+    pub end: f32,
+}
