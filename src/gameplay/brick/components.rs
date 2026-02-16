@@ -8,8 +8,7 @@ pub struct Brick;
 #[derive(Component)]
 pub struct RicochetEffect {
     pub driver: assets::EffectDriver,
-    pub presentation: RicochetEffectPresentation,
-    pub effect: assets::RicochetEffectDef,
+    pub definition: assets::RicochetEffectDef,
 }
 
 #[derive(Component)]

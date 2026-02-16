@@ -5,7 +5,7 @@
     ricochet: (
         driver: Time,
         presentation: (
-            sfx: Some("sounds/ricochet.wav"),
+            sfx: Some("audio/groundImpact.ogg"),
         ),
         effect: Speed(
             ScalarCurve(

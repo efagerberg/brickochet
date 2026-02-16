@@ -51,7 +51,7 @@ pub fn plugin(app: &mut App) {
     )
     .add_systems(
         PostUpdate,
-        (playfield::systems::highlight_depth_lines,)
+        (playfield::systems::highlight_depth_lines, brick::systems::present_richochet)
             .before(crate::rendering::RenderingSet::Integrate)
             .run_if(in_state(states::GameState::Gameplay)),
     );

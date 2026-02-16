@@ -1,6 +1,7 @@
-use bevy::asset::LoadedFolder;
+use bevy::asset;
 use bevy::prelude::*;
 
+use crate::gameplay::ball;
 use crate::gameplay::{brick, playfield};
 use crate::{asset_loading, health, physics, states};
 
@@ -13,9 +14,10 @@ pub fn spawn_brick_wall(
     )>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
     brick_folder: Res<asset_loading::resources::LoadedBrickFolder>,
     brick_assets: ResMut<Assets<brick::assets::BrickAsset>>,
-    loaded_folders: Res<Assets<LoadedFolder>>,
+    loaded_folders: Res<Assets<asset::LoadedFolder>>,
     playfield: Res<playfield::resources::Playfield>,
 ) {
     let (_, enemy_goal_transform, enemy_goal_bounds) = goal_query
@@ -64,6 +66,7 @@ pub fn spawn_brick_wall(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
+                &asset_server,
                 pos,
                 brick_size,
                 brick_asset.clone(),
@@ -77,6 +80,7 @@ fn spawn_brick(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    asset_server: &Res<AssetServer>,
     position: Vec3,
     size: Vec3,
     brick_asset: brick::assets::BrickAsset,
@@ -102,6 +106,12 @@ fn spawn_brick(
 
     let healthy_color = LinearRgba::rgb(0.0, 1.0, 0.0);
     let critical_color = LinearRgba::rgb(1.0, 0.0, 0.0);
+
+    let sfx_optional_handle = brick_asset
+        .ricochet
+        .presentation
+        .sfx
+        .and_then(|path| asset_server.get_handle::<AudioSource>(path));
 
     // Main colored brick
     let main = commands
@@ -138,8 +148,45 @@ fn spawn_brick(
                 delta: -1,
                 affected: health::components::Affects::SelfOnly,
             },
+            brick::components::RicochetEffectPresentation {
+                sfx: sfx_optional_handle,
+            },
             DespawnOnExit(states::GameState::Gameplay),
         ))
         .id();
     commands.entity(main).add_child(border);
+}
+
+pub fn apply_richochet_effect(
+    brick_query: Query<&brick::components::RicochetEffect, With<brick::components::Brick>>,
+    ball_query: Query<&ball::components::BallModifiers, Without<brick::components::Brick>>,
+    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
+) {
+    for message in collision_messages.read() {
+        let ball = ball_query.get(message.a);
+        let brick = brick_query.get(message.b);
+    }
+}
+
+pub fn present_richochet(
+    mut commands: Commands,
+    presentation_query: Query<&brick::components::RicochetEffectPresentation>,
+    mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
+) {
+    for message in collision_messages.read() {
+        for &entity in [message.a, message.b].iter() {
+            if let Some(handle) = presentation_query
+                .get(entity)
+                .ok()
+                .and_then(|p| p.sfx.clone())
+            {
+                commands
+                    .spawn_empty()
+                    .insert((AudioPlayer::new(handle), PlaybackSettings::DESPAWN));
+            } else {
+                // Optional: log warning if no sound effect is found
+                warn!("No sound effect found for entity {:?}", entity);
+            }
+        }
+    }
 }
