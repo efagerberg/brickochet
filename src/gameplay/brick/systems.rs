@@ -2,12 +2,7 @@ use bevy::asset::LoadedFolder;
 use bevy::prelude::*;
 
 use crate::gameplay::{brick, playfield};
-use crate::{health, physics, states};
-
-pub fn load_brick_assets(mut commands: Commands, server: Res<AssetServer>) {
-    let brick_assets = server.load_folder("bricks/");
-    commands.insert_resource(brick::resources::BrickFolder(brick_assets));
-}
+use crate::{asset_loading, health, physics, states};
 
 pub fn spawn_brick_wall(
     mut commands: Commands,
@@ -18,7 +13,7 @@ pub fn spawn_brick_wall(
     )>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    brick_folder: Res<brick::resources::BrickFolder>,
+    brick_folder: Res<asset_loading::resources::LoadedBrickFolder>,
     brick_assets: ResMut<Assets<brick::assets::BrickAsset>>,
     loaded_folders: Res<Assets<LoadedFolder>>,
     playfield: Res<playfield::resources::Playfield>,
@@ -71,7 +66,7 @@ pub fn spawn_brick_wall(
                 &mut materials,
                 pos,
                 brick_size,
-                brick_asset,
+                brick_asset.clone(),
             );
         }
         asset_index = ((index as usize) + 1) % brick_assets.len();
@@ -84,7 +79,7 @@ fn spawn_brick(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     position: Vec3,
     size: Vec3,
-    brick_asset: &brick::assets::BrickAsset,
+    brick_asset: brick::assets::BrickAsset,
 ) {
     // Outer black border (slightly larger)
     let border_padding = 0.25;
@@ -111,7 +106,7 @@ fn spawn_brick(
     // Main colored brick
     let main = commands
         .spawn((
-            Name::new("Brick"),
+            Name::new(brick_asset.name),
             brick::components::Brick,
             physics::components::BoundingCuboid {
                 half_extents: size * 0.5,

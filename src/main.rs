@@ -5,10 +5,10 @@ use bevy_inspector_egui::{bevy_egui, quick};
 
 use crate::gameplay::brick;
 
+mod asset_loading;
 mod gameplay;
 mod health;
 mod input;
-mod loading;
 mod main_menu;
 mod physics;
 mod rendering;
@@ -34,7 +34,7 @@ fn main() {
     ]))
     .add_plugins((
         states::plugin,
-        loading::plugin,
+        asset_loading::plugin,
         scene::plugin,
         gameplay::plugin,
         physics::plugin,

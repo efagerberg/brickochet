@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use serde;
 
-#[derive(serde::Deserialize, bevy::asset::Asset, bevy::reflect::TypePath)]
+#[derive(serde::Deserialize, bevy::asset::Asset, bevy::reflect::TypePath, Clone)]
 pub struct BrickAsset {
     pub name: String,
     pub health: u8,
