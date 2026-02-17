@@ -313,7 +313,7 @@ fn spawn_paddle(
             bounds,
             gameplay::paddle::components::PaddleMotionRecord::default(),
             gameplay::paddle::components::PaddleImpactModifiers::starting(),
-            Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 4.0),
+            Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 2.0),
             GlobalTransform::default(),
             Mesh3d(meshes.add(Cuboid::new(
                 cuboid_dimensions.x,

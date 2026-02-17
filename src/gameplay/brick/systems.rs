@@ -216,8 +216,7 @@ pub fn update_curve_effect(
             Entity,
             &mut physics::components::Curve,
             &mut brick::components::RicochetCurveEffectState,
-        ),
-        Without<brick::components::Brick>,
+        )
     >,
     mut commands: Commands,
     time: Res<Time>,
@@ -252,8 +251,7 @@ pub fn update_speed_effect(
             Entity,
             &mut physics::components::Velocity,
             &mut brick::components::RicochetSpeedEffectState,
-        ),
-        Without<brick::components::Brick>,
+        )
     >,
     mut commands: Commands,
     time: Res<Time>,
