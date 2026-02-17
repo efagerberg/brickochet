@@ -11,15 +11,13 @@ pub struct BrickAsset {
 
 #[derive(Clone, serde::Deserialize)]
 pub struct RicochetEffectAsset {
-    pub driver: EffectDriver,
     pub presentation: RicochetEffectPresentation,
-    pub effect: RicochetEffectDef,
+    pub definition: Option<RicochetEffectDef>,
 }
 
 #[derive(Clone, serde::Deserialize)]
 pub enum EffectDriver {
     Time { duration_seconds: f32 },
-    Distance { total_meters: f32 },
 }
 
 #[derive(Clone, serde::Deserialize)]
@@ -28,9 +26,14 @@ pub struct RicochetEffectPresentation {
 }
 
 #[derive(Clone, serde::Deserialize)]
-pub enum RicochetEffectDef {
+pub struct RicochetEffectDef {
+    pub driver: EffectDriver,
+    pub attribute: RicochetEffectAttribute,
+}
+
+#[derive(Clone, serde::Deserialize)]
+pub enum RicochetEffectAttribute {
     Speed(ScalarCurve),
-    Size(ScalarCurve),
     Curve(Vec2Curve),
 }
 

@@ -3,19 +3,9 @@
     health: 3,
     icon: "textures/brick_icon.png",
     ricochet: (
-        driver: Time(duration_seconds: 2),
-        duration_seconds: 3,
         presentation: (
-            sfx: Some("audio/groundImpact.ogg"),
+            sfx: None,
         ),
-        effect: Curve(
-            Vec2Curve(
-                keyframes: [
-                    (t: 0.0, value: Vec2(0, 0)),
-                    (t: 0.5, value: Vec2(0, 0)),
-                    (t: 1.0, value: Vec2(0, 0)),
-                ],
-            ),
-        ),
+        definition: None
     ),
 )

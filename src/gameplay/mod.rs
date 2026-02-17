@@ -44,6 +44,14 @@ pub fn plugin(app: &mut App) {
             (
                 paddle::systems::apply_paddle_impact_modifiers,
                 playfield::systems::handle_wall_collision,
+                (
+                    brick::systems::initialize_ricochet_effect,
+                    (
+                        brick::systems::update_curve_effect,
+                        brick::systems::update_speed_effect,
+                    ),
+                )
+                    .chain(),
             )
                 .after(crate::physics::PhysicsSet::ResolveCollisions)
                 .run_if(in_state(states::GameState::Gameplay)),

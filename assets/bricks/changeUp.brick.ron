@@ -1,0 +1,23 @@
+(
+    name: "Change Up Brick",
+    health: 1,
+    icon: "textures/brick_icon.png",
+    ricochet: (
+        presentation: (
+            sfx: Some("audio/groundImpact.ogg"),
+        ),
+        definition: Some(
+            (
+                driver: Time(duration_seconds: 2),
+                attribute: Speed(
+                    ScalarCurve(
+                        keyframes: [
+                            (t: 0.0, value: 25),
+                            (t: 0.9, value: 12.5)
+                        ],
+                    ),
+                )
+            )
+        ),
+    ),
+)
