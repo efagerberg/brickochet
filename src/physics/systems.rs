@@ -25,13 +25,28 @@ pub fn apply_curve(
     }
 }
 
+use std::collections::HashSet;
+
 pub fn detect_collisions(
     spheres: Query<(Entity, &Transform, &physics::components::BoundingSphere)>,
     cuboids: Query<(Entity, &Transform, &physics::components::BoundingCuboid)>,
     mut messages: MessageWriter<physics::messages::CollisionMessage>,
 ) {
+    let mut processed_entities: HashSet<Entity> = HashSet::new(); // Track already collided entities
+    
     for (a_entity, a_transform, a_bounds) in spheres.iter() {
+        // Skip if this sphere has already collided with another entity
+        if processed_entities.contains(&a_entity) {
+            continue;
+        }
+
         for (b_entity, b_transform, b_bounds) in cuboids.iter() {
+            // Skip if this cuboid has already collided with another entity
+            if processed_entities.contains(&b_entity) {
+                continue;
+            }
+
+            // Check for intersection
             if physics::math::sphere_aabb_intersects(
                 a_transform.translation,
                 a_bounds.radius,
@@ -53,6 +68,7 @@ pub fn detect_collisions(
 
                 let penetration = a_bounds.radius - contact_point.distance(a_transform.translation);
 
+                // Create a collision message
                 messages.write(physics::messages::CollisionMessage {
                     a: a_entity,
                     b: b_entity,
@@ -60,6 +76,12 @@ pub fn detect_collisions(
                     contact_point,
                     penetration,
                 });
+
+                // Mark both entities as processed
+                processed_entities.insert(a_entity);
+                processed_entities.insert(b_entity);
+
+                break; // Exit the inner loop after a collision to prevent further collisions in this frame
             }
         }
     }
@@ -93,25 +115,13 @@ pub fn resolve_sphere_aabb_collision(
 
     for (sphere_entity, collisions) in collisions_per_sphere {
         if let Ok((mut velocity, mut transform)) = sphere_query.get_mut(sphere_entity) {
-            let mut total_normal = Vec3::ZERO;
-            let mut max_penetration: f32 = 0.0;
-
             // Only consider collisions with valid cuboids
             for message in collisions {
-                if cuboid_query.get(message.b).is_ok() {
-                    total_normal += message.normal;
-                    max_penetration = max_penetration.max(message.penetration);
-                }
-            }
-
-            if total_normal != Vec3::ZERO {
-                let normal = total_normal.normalize();
-
                 // Move the sphere out of the cuboid
-                transform.translation += normal * max_penetration;
+                transform.translation += message.normal * message.penetration;
 
                 // Reflect velocity once
-                velocity.0 = velocity.0.reflect(normal);
+                velocity.0 = velocity.0.reflect(message.normal);
             }
         }
     }

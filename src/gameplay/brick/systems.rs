@@ -1,4 +1,3 @@
-
 use bevy::asset;
 use bevy::prelude::*;
 
@@ -168,16 +167,17 @@ fn spawn_brick(
 }
 
 pub fn initialize_ricochet_effect(
-    non_brick_query: Query<Entity, Without<brick::components::Brick>>,
+    mut non_brick_query: Query<Entity, Without<brick::components::Brick>>,
     brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
     for message in collision_messages.read() {
-        let non_brick_result = non_brick_query.get(message.a);
+        let non_brick_result = non_brick_query.get_mut(message.a);
         let brick_result = brick_query.get(message.b);
-        let combined = non_brick_result.and_then(|ball| brick_result.map(|brick| (ball, brick)));
+        let combined =
+            non_brick_result.and_then(|non_brick| brick_result.map(|brick| (non_brick, brick)));
 
         if let Ok((_, ricochet_effect)) = combined {
             match ricochet_effect.definition.driver {
@@ -211,13 +211,11 @@ pub fn initialize_ricochet_effect(
 }
 
 pub fn update_curve_effect(
-    query: Query<
-        (
-            Entity,
-            &mut physics::components::Curve,
-            &mut brick::components::RicochetCurveEffectState,
-        )
-    >,
+    query: Query<(
+        Entity,
+        &mut physics::components::Curve,
+        &mut brick::components::RicochetCurveEffectState,
+    )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
@@ -246,13 +244,11 @@ pub fn update_curve_effect(
 }
 
 pub fn update_speed_effect(
-    query: Query<
-        (
-            Entity,
-            &mut physics::components::Velocity,
-            &mut brick::components::RicochetSpeedEffectState,
-        )
-    >,
+    query: Query<(
+        Entity,
+        &mut physics::components::Velocity,
+        &mut brick::components::RicochetSpeedEffectState,
+    )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
