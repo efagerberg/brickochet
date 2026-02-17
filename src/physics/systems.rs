@@ -33,7 +33,7 @@ pub fn detect_collisions(
     mut messages: MessageWriter<physics::messages::CollisionMessage>,
 ) {
     let mut processed_entities: HashSet<Entity> = HashSet::new(); // Track already collided entities
-    
+
     for (a_entity, a_transform, a_bounds) in spheres.iter() {
         // Skip if this sphere has already collided with another entity
         if processed_entities.contains(&a_entity) {
@@ -93,7 +93,7 @@ pub fn resolve_sphere_aabb_collision(
         (&mut physics::components::Velocity, &mut Transform),
         With<physics::components::BoundingSphere>,
     >,
-    cuboid_query: Query<
+    _cuboid_query: Query<
         Entity,
         (
             With<physics::components::BoundingCuboid>,
