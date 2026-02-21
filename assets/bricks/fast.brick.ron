@@ -1,16 +1,15 @@
 (
-    name: "Change Up Brick",
-    health: 1,
+    name: "Fast Brick",
+    health: 2,
     icon: "textures/brick_icon.png",
     collision_sfx: Some("audio/groundImpact.ogg"),
     ricochet_effect: Some(
         (
-            driver: Time(duration_seconds: 1.5),
+            driver: Time(duration_seconds: 1.0),
             attribute: Speed(
                 ScalarCurve(
                     keyframes: [
-                        (t: 0.0, value: 30),
-                        (t: 0.8, value: 12.5),
+                        (t: 0.0, value: 40),
                         (t: 1.0, value: 25)
                     ],
                 ),

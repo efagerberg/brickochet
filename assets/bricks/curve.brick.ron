@@ -2,23 +2,19 @@
     name: "Curve Brick",
     health: 1,
     icon: "textures/brick_icon.png",
-    ricochet: (
-        presentation: (
-            sfx: Some("audio/groundImpact.ogg"),
-        ),
-        definition: Some(
-            (
-                driver: Time(duration_seconds: 1.5),
-                attribute: Curve(
-                    Vec2Curve(
-                        keyframes: [
-                            (t: 0.0, value: Vec2(0.0, 0.0)),          // Start position
-                            (t: 0.6, value: Vec2(10.0, -10.0)),       // Midpoint for curve effect
-                            (t: 1.0, value: Vec2(20.0, 0.0)),      
-                        ],
-                    ),
-                )
+    collision_sfx: Some("audio/groundImpact.ogg"),
+    ricochet_effect: Some(
+        (
+            driver: Time(duration_seconds: 1.5),
+            attribute: Curve(
+                Vec2Curve(
+                    keyframes: [
+                        (t: 0.0, value: Vec2(0.0, 0.0)),          // Start position
+                        (t: 0.6, value: Vec2(10.0, -10.0)),       // Midpoint for curve effect
+                        (t: 1.0, value: Vec2(20.0, 0.0)),      
+                    ],
+                ),
             )
-        ),
+        )
     ),
 )

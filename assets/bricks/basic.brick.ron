@@ -2,10 +2,6 @@
     name: "Basic Brick",
     health: 3,
     icon: "textures/brick_icon.png",
-    ricochet: (
-        presentation: (
-            sfx: None,
-        ),
-        definition: None
-    ),
+    collision_sfx: None,
+    ricochet: None
 )

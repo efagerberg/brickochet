@@ -109,9 +109,7 @@ fn spawn_brick(
     let critical_color = LinearRgba::rgb(1.0, 0.0, 0.0);
 
     let sfx_optional_handle = brick_asset
-        .ricochet
-        .presentation
-        .sfx
+        .collision_sfx
         .and_then(|path| asset_server.get_handle::<AudioSource>(path));
 
     // Main colored brick
@@ -158,7 +156,7 @@ fn spawn_brick(
             .entity(main)
             .insert(audio::components::CollisionSFX(sfx));
     }
-    if let Some(definition) = brick_asset.ricochet.definition {
+    if let Some(definition) = brick_asset.ricochet_effect {
         commands
             .entity(main)
             .insert(brick::components::RicochetEffectConfig { definition });

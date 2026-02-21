@@ -6,23 +6,13 @@ pub struct BrickAsset {
     pub name: String,
     pub health: u8,
     pub icon: String,
-    pub ricochet: RicochetEffectAsset,
-}
-
-#[derive(Clone, serde::Deserialize)]
-pub struct RicochetEffectAsset {
-    pub presentation: RicochetEffectPresentation,
-    pub definition: Option<RicochetEffectDef>,
+    pub collision_sfx: Option<String>,
+    pub ricochet_effect: Option<RicochetEffectDef>,
 }
 
 #[derive(Clone, serde::Deserialize)]
 pub enum EffectDriver {
     Time { duration_seconds: f32 },
-}
-
-#[derive(Clone, serde::Deserialize)]
-pub struct RicochetEffectPresentation {
-    pub sfx: Option<String>,
 }
 
 #[derive(Clone, serde::Deserialize)]
