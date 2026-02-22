@@ -5,12 +5,12 @@
     collision_sfx: Some("audio/groundImpact.ogg"),
     ricochet_effect: Some(
         (
-            driver: Time(duration_seconds: 1.0),
+            driver: DistanceToPlayer,
             attribute: Speed(
                 ScalarCurve(
                     keyframes: [
                         (t: 0.0, value: 40),
-                        (t: 1.0, value: 25)
+                        (t: 0.95, value: 25)
                     ],
                 ),
             )

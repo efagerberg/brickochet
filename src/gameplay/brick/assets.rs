@@ -13,6 +13,7 @@ pub struct BrickAsset {
 #[derive(Clone, serde::Deserialize)]
 pub enum EffectDriver {
     Time { duration_seconds: f32 },
+    DistanceToPlayer,
 }
 
 #[derive(Clone, serde::Deserialize)]

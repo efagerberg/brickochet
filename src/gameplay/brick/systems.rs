@@ -3,6 +3,8 @@ use bevy::prelude::*;
 
 use crate::audio;
 use crate::gameplay::brick::assets;
+use crate::gameplay::paddle;
+use crate::gameplay::player;
 use crate::gameplay::{brick, playfield};
 use crate::{asset_loading, health, physics, states};
 
@@ -165,8 +167,15 @@ fn spawn_brick(
 }
 
 pub fn initialize_ricochet_effect(
-    mut non_brick_query: Query<Entity, Without<brick::components::Brick>>,
+    mut non_brick_query: Query<&Transform, Without<brick::components::Brick>>,
     brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
+    paddle_query: Query<
+        &Transform,
+        (
+            With<paddle::components::Paddle>,
+            With<player::components::Player>,
+        ),
+    >,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut commands: Commands,
     time: Res<Time>,
@@ -177,33 +186,46 @@ pub fn initialize_ricochet_effect(
         let combined =
             non_brick_result.and_then(|non_brick| brick_result.map(|brick| (non_brick, brick)));
 
-        if let Ok((_, ricochet_effect)) = combined {
-            match ricochet_effect.definition.driver {
+        if let Ok((non_brick_transform, ricochet_effect)) = combined {
+            let (start, end) = match ricochet_effect.definition.driver {
                 brick::assets::EffectDriver::Time { duration_seconds } => {
                     let start = time.elapsed_secs();
                     let end = time.elapsed_secs() + duration_seconds;
-                    match ricochet_effect.definition.attribute.clone() {
-                        brick::assets::RicochetEffectAttribute::Speed(scalar_curve) => {
-                            let effect_state = brick::components::RicochetSpeedEffectState {
-                                start,
-                                end,
-                                keyframes: scalar_curve.keyframes,
-                                last_keyframe_index: None,
-                            };
-                            commands.entity(message.a).insert(effect_state);
-                        }
-                        brick::assets::RicochetEffectAttribute::Curve(vec2_curve) => {
-                            let effect_state = brick::components::RicochetCurveEffectState {
-                                start,
-                                end,
-                                last_keyframe_index: None,
-                                keyframes: vec2_curve.keyframes,
-                            };
-                            commands.entity(message.a).insert(effect_state);
-                        }
-                    }
+                    (start, end)
+                }
+                brick::assets::EffectDriver::DistanceToPlayer => {
+                    let start = non_brick_transform.translation.z;
+                    let paddle_transform = paddle_query
+                        .iter()
+                        .next()
+                        .expect("No player, cannot use DistanceToPlayer driver");
+                    let end = paddle_transform.translation.z;
+                    (start, end)
                 }
             };
+            let definition = ricochet_effect.definition.clone();
+            match definition.attribute {
+                brick::assets::RicochetEffectAttribute::Speed(scalar_curve) => {
+                    let effect_state = brick::components::RicochetSpeedEffectState {
+                        driver: definition.driver,
+                        start,
+                        end,
+                        keyframes: scalar_curve.keyframes,
+                        last_keyframe_index: None,
+                    };
+                    commands.entity(message.a).insert(effect_state);
+                }
+                brick::assets::RicochetEffectAttribute::Curve(vec2_curve) => {
+                    let effect_state = brick::components::RicochetCurveEffectState {
+                        driver: definition.driver,
+                        start,
+                        end,
+                        last_keyframe_index: None,
+                        keyframes: vec2_curve.keyframes,
+                    };
+                    commands.entity(message.a).insert(effect_state);
+                }
+            }
         }
     }
 }
@@ -211,14 +233,20 @@ pub fn initialize_ricochet_effect(
 pub fn update_curve_effect(
     query: Query<(
         Entity,
+        &Transform,
         &mut physics::components::Curve,
         &mut brick::components::RicochetCurveEffectState,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    let current = time.elapsed_secs();
-    for (entity, mut curve, mut effect_state) in query {
+    for (entity, transform, mut curve, mut effect_state) in query {
+        let current = match effect_state.driver {
+            assets::EffectDriver::Time {
+                duration_seconds: _,
+            } => time.elapsed_secs(),
+            assets::EffectDriver::DistanceToPlayer => transform.translation.z,
+        };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
         let updated_index = match get_next_keyframe_index(t, &effect_state.keyframes) {
             Err(NextKeyFrameError::NotStarted) => continue,
@@ -244,14 +272,20 @@ pub fn update_curve_effect(
 pub fn update_speed_effect(
     query: Query<(
         Entity,
+        &Transform,
         &mut physics::components::Velocity,
         &mut brick::components::RicochetSpeedEffectState,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    let current = time.elapsed_secs();
-    for (entity, mut velocity, mut effect_state) in query {
+    for (entity, transform, mut velocity, mut effect_state) in query {
+        let current = match effect_state.driver {
+            assets::EffectDriver::Time {
+                duration_seconds: _,
+            } => time.elapsed_secs(),
+            assets::EffectDriver::DistanceToPlayer => transform.translation.z,
+        };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
 
         let updated_index = match get_next_keyframe_index(t, &effect_state.keyframes) {
@@ -288,7 +322,7 @@ fn get_next_keyframe_index<T>(
     if t < 0.0 {
         return Err(NextKeyFrameError::NotStarted);
     }
-    if t >= 1.0 {
+    if t > 1.0 {
         return Err(NextKeyFrameError::Finished);
     }
     let next_keyframe_index = keyframes

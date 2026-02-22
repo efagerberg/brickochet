@@ -12,6 +12,7 @@ pub struct RicochetEffectConfig {
 
 #[derive(Component)]
 pub struct RicochetSpeedEffectState {
+    pub driver: assets::EffectDriver,
     pub start: f32,
     pub end: f32,
     pub last_keyframe_index: Option<usize>,
@@ -20,6 +21,7 @@ pub struct RicochetSpeedEffectState {
 
 #[derive(Component)]
 pub struct RicochetCurveEffectState {
+    pub driver: assets::EffectDriver,
     pub start: f32,
     pub end: f32,
     pub last_keyframe_index: Option<usize>,
