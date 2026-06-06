@@ -1,0 +1,20 @@
+(
+    name: "Shrink Brick",
+    health: 2,
+    icon: "textures/brick_icon.png",
+    collision_sfx: Some("audio/groundImpact.ogg"),
+    ricochet_effect: Some(
+        (
+            driver: Time(duration_seconds: 5),
+            attribute: Size(
+                ScalarCurve(
+                    keyframes: [
+                        (t: 0.0, value: 1.0, interp: Linear),
+                        (t: 0.9, value: 0.5, interp: Linear),
+                        (t: 1.0, value: 1.0, interp: Linear),
+                    ],
+                ),
+            )
+        )
+    ),
+)

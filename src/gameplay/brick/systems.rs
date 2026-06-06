@@ -225,49 +225,21 @@ pub fn initialize_ricochet_effect(
                     };
                     commands.entity(message.a).insert(effect_state);
                 }
+                brick::assets::RicochetEffectAttribute::Size(scalar_curve) => {
+                    let effect_state = brick::components::RicochetSizeEffectState {
+                        driver: definition.driver,
+                        start,
+                        end,
+                        last_keyframe_index: None,
+                        keyframes: scalar_curve.keyframes,
+                    };
+                    commands.entity(message.a).insert(effect_state);
+                }
             }
         }
     }
 }
 
-pub fn update_curve_effect(
-    query: Query<(
-        Entity,
-        &Transform,
-        &mut physics::components::Curve,
-        &mut brick::components::RicochetCurveEffectState,
-    )>,
-    mut commands: Commands,
-    time: Res<Time>,
-) {
-    for (entity, transform, mut curve, mut effect_state) in query {
-        let current = match effect_state.driver {
-            assets::EffectDriver::Time {
-                duration_seconds: _,
-            } => time.elapsed_secs(),
-            assets::EffectDriver::DistanceToPlayer => transform.translation.z,
-        };
-        let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-        let updated_index = match get_next_keyframe_index(t, &effect_state.keyframes) {
-            Err(NextKeyFrameError::NotStarted) => continue,
-            Ok(value) => value,
-            Err(NextKeyFrameError::Finished) => {
-                commands
-                    .entity(entity)
-                    .remove::<brick::components::RicochetCurveEffectState>();
-                continue;
-            }
-        };
-        if effect_state
-            .last_keyframe_index
-            .is_none_or(|current_value| current_value < updated_index)
-        {
-            effect_state.last_keyframe_index = Some(updated_index);
-            let active_keyframe = &effect_state.keyframes[updated_index];
-            curve.0 = active_keyframe.value;
-        }
-    }
-}
 
 pub fn update_speed_effect(
     query: Query<(
@@ -281,54 +253,180 @@ pub fn update_speed_effect(
 ) {
     for (entity, transform, mut velocity, mut effect_state) in query {
         let current = match effect_state.driver {
-            assets::EffectDriver::Time {
-                duration_seconds: _,
-            } => time.elapsed_secs(),
-            assets::EffectDriver::DistanceToPlayer => transform.translation.z,
+            crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
+                time.elapsed_secs()
+            }
+            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
 
-        let updated_index = match get_next_keyframe_index(t, &effect_state.keyframes) {
+        match get_next_keyframe_index(t, &effect_state.keyframes) {
             Err(NextKeyFrameError::NotStarted) => continue,
-            Ok(value) => value,
+            Ok(idx) => effect_state.last_keyframe_index = Some(idx),
             Err(NextKeyFrameError::Finished) => {
-                commands
-                    .entity(entity)
-                    .remove::<brick::components::RicochetSpeedEffectState>();
+                commands.entity(entity).remove::<brick::components::RicochetSpeedEffectState>();
+                continue;
+            }
+        }
+
+        let sampled = match sample_curve::<f32>(&effect_state.keyframes, t) {
+            Err(NextKeyFrameError::NotStarted) => continue,
+            Ok(v) => v,
+            Err(NextKeyFrameError::Finished) => {
+                commands.entity(entity).remove::<brick::components::RicochetSpeedEffectState>();
                 continue;
             }
         };
 
-        if effect_state
-            .last_keyframe_index
-            .is_none_or(|current_value| current_value < updated_index)
-        {
-            effect_state.last_keyframe_index = Some(updated_index);
-            let active_keyframe = &effect_state.keyframes[updated_index];
-            velocity.0 = velocity.0.normalize() * active_keyframe.value;
+        // preserve direction, adjust magnitude
+        if velocity.0.length_squared() > 0.0 {
+            velocity.0 = velocity.0.normalize() * sampled;
+        } else {
+            // if zero velocity, set in z direction (or skip) — adjust behavior as desired
+            velocity.0 = Vec3::new(0.0, 0.0, sampled);
         }
     }
 }
+
+
+pub fn update_curve_effect(
+    query: Query<(
+        Entity,
+        &Transform,
+        &mut physics::components::Curve,
+        &mut brick::components::RicochetCurveEffectState,
+    )>,
+    mut commands: Commands,
+    time: Res<Time>,
+) {
+    for (entity, transform, mut curve, mut effect_state) in query {
+        let current = match effect_state.driver {
+            crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
+                time.elapsed_secs()
+            }
+            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
+        };
+        let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
+
+        match get_next_keyframe_index(t, &effect_state.keyframes) {
+            Err(NextKeyFrameError::NotStarted) => continue,
+            Ok(idx) => effect_state.last_keyframe_index = Some(idx),
+            Err(NextKeyFrameError::Finished) => {
+                commands.entity(entity).remove::<brick::components::RicochetCurveEffectState>();
+                continue;
+            }
+        }
+
+        let sampled = match sample_curve::<bevy::prelude::Vec2>(&effect_state.keyframes, t) {
+            Err(NextKeyFrameError::NotStarted) => continue,
+            Ok(v) => v,
+            Err(NextKeyFrameError::Finished) => {
+                commands.entity(entity).remove::<brick::components::RicochetCurveEffectState>();
+                continue;
+            }
+        };
+
+        curve.0 = sampled;
+    }
+}
+
+
+
+pub fn update_size_effect(
+    query: Query<(
+        Entity,
+        &mut Transform,
+        &mut physics::components::BoundingSphere,
+        &mut brick::components::RicochetSizeEffectState,
+    )>,
+    mut commands: Commands,
+    time: Res<Time>,
+) {
+    for (entity, mut transform, mut bounding_sphere, mut effect_state) in query {
+        let current = match effect_state.driver {
+            crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
+                time.elapsed_secs()
+            }
+            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
+        };
+        let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
+
+        // update index but we always sample so interpolation applies continuously
+        match get_next_keyframe_index(t, &effect_state.keyframes) {
+            Err(NextKeyFrameError::NotStarted) => continue,
+            Ok(idx) => effect_state.last_keyframe_index = Some(idx),
+            Err(NextKeyFrameError::Finished) => {
+                commands.entity(entity).remove::<brick::components::RicochetSizeEffectState>();
+                continue;
+            }
+        };
+
+        let sampled = match sample_curve(&effect_state.keyframes, t) {
+            Err(NextKeyFrameError::NotStarted) => continue,
+            Ok(v) => v,
+            Err(NextKeyFrameError::Finished) => {
+                commands.entity(entity).remove::<brick::components::RicochetSizeEffectState>();
+                continue;
+            }
+        };
+
+        transform.scale = Vec3::ONE * sampled;
+        bounding_sphere.radius = sampled / 2.0;
+    }
+}
+
+
 
 enum NextKeyFrameError {
     NotStarted,
     Finished,
 }
 
-fn get_next_keyframe_index<T>(
+// generic sampler for payloads that implement a simple lerp operation
+pub trait Lerp: Copy {
+    fn lerp(a: Self, b: Self, u: f32) -> Self;
+}
+impl Lerp for f32 {
+    fn lerp(a: Self, b: Self, u: f32) -> Self { a + (b - a) * u }
+}
+impl Lerp for bevy::prelude::Vec2 {
+    fn lerp(a: Self, b: Self, u: f32) -> Self { a + (b - a) * u }
+}
+impl Lerp for bevy::prelude::Vec3 {
+    fn lerp(a: Self, b: Self, u: f32) -> Self { a + (b - a) * u }
+}
+
+// generic curve sampler using key t and left-key interp
+fn sample_curve<V: Lerp + Copy>(
+    keyframes: &[assets::Keyframe<V>],
     t: f32,
-    keyframes: &[assets::Keyframe<T>],
-) -> Result<usize, NextKeyFrameError> {
-    if t < 0.0 {
-        return Err(NextKeyFrameError::NotStarted);
+) -> Result<V, NextKeyFrameError> {
+    if keyframes.is_empty() { return Err(NextKeyFrameError::NotStarted); }
+    if t < keyframes[0].t { return Err(NextKeyFrameError::NotStarted); }
+    if t >= keyframes.last().unwrap().t { return Err(NextKeyFrameError::Finished); }
+
+    let right_idx = keyframes.iter().position(|kf| kf.t > t).unwrap();
+    let left_idx = right_idx - 1;
+    let left = &keyframes[left_idx];
+    let right = &keyframes[right_idx];
+
+    match left.interp {
+        assets::Interpolation::Constant => Ok(left.value),
+        assets::Interpolation::Linear => {
+            let span = right.t - left.t;
+            let u = if span <= 0.0 { 0.0 } else { (t - left.t) / span };
+            Ok(V::lerp(left.value, right.value, u))
+        }
     }
-    if t > 1.0 {
-        return Err(NextKeyFrameError::Finished);
-    }
-    let next_keyframe_index = keyframes
-        .iter()
-        .position(|key| key.t > t)
-        .unwrap_or(keyframes.len());
-    let updated_index = next_keyframe_index - 1;
+}
+
+// next keyframe index helper (returns index of left/active keyframe)
+fn get_next_keyframe_index<V>(t: f32, keyframes: &[assets::Keyframe<V>]) -> Result<usize, NextKeyFrameError> {
+    if keyframes.is_empty() { return Err(NextKeyFrameError::NotStarted); }
+    if t < keyframes[0].t { return Err(NextKeyFrameError::NotStarted); }
+    if t > keyframes.last().unwrap().t { return Err(NextKeyFrameError::Finished); }
+
+    let next = keyframes.iter().position(|kf| kf.t > t).unwrap_or(keyframes.len());
+    let updated_index = next.saturating_sub(1);
     Ok(updated_index)
 }

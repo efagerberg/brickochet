@@ -49,6 +49,7 @@ pub fn plugin(app: &mut App) {
                     (
                         brick::systems::update_curve_effect,
                         brick::systems::update_speed_effect,
+                        brick::systems::update_size_effect,
                     ),
                 )
                     .chain(),

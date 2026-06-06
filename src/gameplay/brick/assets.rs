@@ -26,12 +26,20 @@ pub struct RicochetEffectDef {
 pub enum RicochetEffectAttribute {
     Speed(ScalarCurve),
     Curve(Vec2Curve),
+    Size(ScalarCurve),
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub enum Interpolation {
+    Constant,                // hold value until next keyframe (step)
+    Linear,                  // linear between keys
 }
 
 #[derive(Clone, serde::Deserialize)]
 pub struct Keyframe<T> {
     pub t: f32,
     pub value: T,
+    pub interp: Interpolation,
 }
 
 #[derive(Clone, serde::Deserialize)]

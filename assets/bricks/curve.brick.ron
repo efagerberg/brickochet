@@ -9,8 +9,8 @@
             attribute: Curve(
                 Vec2Curve(
                     keyframes: [
-                        (t: 0.0, value: Vec2(0.0, 0.0)),          // Start position
-                        (t: 0.6, value: Vec2(10.0, -10.0)),       // Midpoint for curve effect
+                        (t: 0.0, value: Vec2(0.0, 0.0), interp: Linear),          // Start position
+                        (t: 0.6, value: Vec2(10.0, -10.0), interp: Linear),       // Midpoint for curve effect
                     ],
                 ),
             )
