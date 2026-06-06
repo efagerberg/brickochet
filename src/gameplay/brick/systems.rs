@@ -211,7 +211,6 @@ pub fn initialize_ricochet_effect(
                         start,
                         end,
                         keyframes: scalar_curve.keyframes,
-                        last_keyframe_index: None,
                     };
                     commands.entity(message.a).insert(effect_state);
                 }
@@ -220,7 +219,6 @@ pub fn initialize_ricochet_effect(
                         driver: definition.driver,
                         start,
                         end,
-                        last_keyframe_index: None,
                         keyframes: vec2_curve.keyframes,
                     };
                     commands.entity(message.a).insert(effect_state);
@@ -230,7 +228,6 @@ pub fn initialize_ricochet_effect(
                         driver: definition.driver,
                         start,
                         end,
-                        last_keyframe_index: None,
                         keyframes: scalar_curve.keyframes,
                     };
                     commands.entity(message.a).insert(effect_state);
@@ -259,16 +256,6 @@ pub fn update_speed_effect(
             crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-
-        match get_next_keyframe_index(t, &effect_state.keyframes) {
-            Err(NextKeyFrameError::NotStarted) => continue,
-            Ok(idx) => effect_state.last_keyframe_index = Some(idx),
-            Err(NextKeyFrameError::Finished) => {
-                commands.entity(entity).remove::<brick::components::RicochetSpeedEffectState>();
-                continue;
-            }
-        }
-
         let sampled = match sample_curve::<f32>(&effect_state.keyframes, t) {
             Err(NextKeyFrameError::NotStarted) => continue,
             Ok(v) => v,
@@ -307,16 +294,6 @@ pub fn update_curve_effect(
             crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-
-        match get_next_keyframe_index(t, &effect_state.keyframes) {
-            Err(NextKeyFrameError::NotStarted) => continue,
-            Ok(idx) => effect_state.last_keyframe_index = Some(idx),
-            Err(NextKeyFrameError::Finished) => {
-                commands.entity(entity).remove::<brick::components::RicochetCurveEffectState>();
-                continue;
-            }
-        }
-
         let sampled = match sample_curve::<bevy::prelude::Vec2>(&effect_state.keyframes, t) {
             Err(NextKeyFrameError::NotStarted) => continue,
             Ok(v) => v,
@@ -331,18 +308,17 @@ pub fn update_curve_effect(
 }
 
 
-
 pub fn update_size_effect(
     query: Query<(
         Entity,
         &mut Transform,
         &mut physics::components::BoundingSphere,
-        &mut brick::components::RicochetSizeEffectState,
+        &brick::components::RicochetSizeEffectState,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (entity, mut transform, mut bounding_sphere, mut effect_state) in query {
+    for (entity, mut transform, mut bounding_sphere, effect_state) in query {
         let current = match effect_state.driver {
             crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
                 time.elapsed_secs()
@@ -350,16 +326,6 @@ pub fn update_size_effect(
             crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-
-        // update index but we always sample so interpolation applies continuously
-        match get_next_keyframe_index(t, &effect_state.keyframes) {
-            Err(NextKeyFrameError::NotStarted) => continue,
-            Ok(idx) => effect_state.last_keyframe_index = Some(idx),
-            Err(NextKeyFrameError::Finished) => {
-                commands.entity(entity).remove::<brick::components::RicochetSizeEffectState>();
-                continue;
-            }
-        };
 
         let sampled = match sample_curve(&effect_state.keyframes, t) {
             Err(NextKeyFrameError::NotStarted) => continue,
@@ -418,15 +384,4 @@ fn sample_curve<V: Lerp + Copy>(
             Ok(V::lerp(left.value, right.value, u))
         }
     }
-}
-
-// next keyframe index helper (returns index of left/active keyframe)
-fn get_next_keyframe_index<V>(t: f32, keyframes: &[assets::Keyframe<V>]) -> Result<usize, NextKeyFrameError> {
-    if keyframes.is_empty() { return Err(NextKeyFrameError::NotStarted); }
-    if t < keyframes[0].t { return Err(NextKeyFrameError::NotStarted); }
-    if t > keyframes.last().unwrap().t { return Err(NextKeyFrameError::Finished); }
-
-    let next = keyframes.iter().position(|kf| kf.t > t).unwrap_or(keyframes.len());
-    let updated_index = next.saturating_sub(1);
-    Ok(updated_index)
 }
