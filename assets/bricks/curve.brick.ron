@@ -8,7 +8,7 @@
             driver: DistanceToPlayer,
             attribute: Curve(
                 Vec2Curve(
-                    keyframes: [
+                    key_frames: [
                         (t: 0.0, value: Vec2(0.0, 0.0), interp: Linear),          // Start position
                         (t: 0.6, value: Vec2(10.0, -10.0), interp: Linear),       // Midpoint for curve effect
                     ],

@@ -8,7 +8,7 @@
             driver: DistanceToPlayer,
             attribute: Speed(
                 ScalarCurve(
-                    keyframes: [
+                    key_frames: [
                         (t: 0.0, value: 30, interp: Constant),
                         (t: 0.8, value: 12.5, interp: Constant),
                         (t: 0.95, value: 20, interp: Constant),

@@ -2,7 +2,7 @@ use bevy::asset;
 use bevy::prelude::*;
 
 use crate::audio;
-use crate::gameplay::brick::assets;
+use crate::gameplay::brick::key_frames;
 use crate::gameplay::paddle;
 use crate::gameplay::player;
 use crate::gameplay::{brick, playfield};
@@ -210,7 +210,7 @@ pub fn initialize_ricochet_effect(
                         driver: definition.driver,
                         start,
                         end,
-                        keyframes: scalar_curve.keyframes,
+                        key_frames: scalar_curve.key_frames,
                     };
                     commands.entity(message.a).insert(effect_state);
                 }
@@ -219,7 +219,7 @@ pub fn initialize_ricochet_effect(
                         driver: definition.driver,
                         start,
                         end,
-                        keyframes: vec2_curve.keyframes,
+                        key_frames: vec2_curve.key_frames,
                     };
                     commands.entity(message.a).insert(effect_state);
                 }
@@ -228,7 +228,7 @@ pub fn initialize_ricochet_effect(
                         driver: definition.driver,
                         start,
                         end,
-                        keyframes: scalar_curve.keyframes,
+                        key_frames: scalar_curve.key_frames,
                     };
                     commands.entity(message.a).insert(effect_state);
                 }
@@ -236,7 +236,6 @@ pub fn initialize_ricochet_effect(
         }
     }
 }
-
 
 pub fn update_speed_effect(
     query: Query<(
@@ -250,17 +249,21 @@ pub fn update_speed_effect(
 ) {
     for (entity, transform, mut velocity, mut effect_state) in query {
         let current = match effect_state.driver {
-            crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
-                time.elapsed_secs()
+            crate::gameplay::brick::assets::EffectDriver::Time {
+                duration_seconds: _,
+            } => time.elapsed_secs(),
+            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => {
+                transform.translation.z
             }
-            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-        let sampled = match sample_curve::<f32>(&effect_state.keyframes, t) {
-            Err(NextKeyFrameError::NotStarted) => continue,
+        let sampled = match key_frames::sample_key_frames::<f32>(&effect_state.key_frames, t) {
+            Err(key_frames::NextKeyFrameError::NotStarted) => continue,
             Ok(v) => v,
-            Err(NextKeyFrameError::Finished) => {
-                commands.entity(entity).remove::<brick::components::RicochetSpeedEffectState>();
+            Err(key_frames::NextKeyFrameError::Finished) => {
+                commands
+                    .entity(entity)
+                    .remove::<brick::components::RicochetSpeedEffectState>();
                 continue;
             }
         };
@@ -275,7 +278,6 @@ pub fn update_speed_effect(
     }
 }
 
-
 pub fn update_curve_effect(
     query: Query<(
         Entity,
@@ -288,25 +290,30 @@ pub fn update_curve_effect(
 ) {
     for (entity, transform, mut curve, mut effect_state) in query {
         let current = match effect_state.driver {
-            crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
-                time.elapsed_secs()
+            crate::gameplay::brick::assets::EffectDriver::Time {
+                duration_seconds: _,
+            } => time.elapsed_secs(),
+            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => {
+                transform.translation.z
             }
-            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-        let sampled = match sample_curve::<bevy::prelude::Vec2>(&effect_state.keyframes, t) {
-            Err(NextKeyFrameError::NotStarted) => continue,
-            Ok(v) => v,
-            Err(NextKeyFrameError::Finished) => {
-                commands.entity(entity).remove::<brick::components::RicochetCurveEffectState>();
-                continue;
-            }
-        };
+        let sampled =
+            match key_frames::sample_key_frames::<bevy::prelude::Vec2>(&effect_state.key_frames, t)
+            {
+                Err(key_frames::NextKeyFrameError::NotStarted) => continue,
+                Ok(v) => v,
+                Err(key_frames::NextKeyFrameError::Finished) => {
+                    commands
+                        .entity(entity)
+                        .remove::<brick::components::RicochetCurveEffectState>();
+                    continue;
+                }
+            };
 
         curve.0 = sampled;
     }
 }
-
 
 pub fn update_size_effect(
     query: Query<(
@@ -320,68 +327,27 @@ pub fn update_size_effect(
 ) {
     for (entity, mut transform, mut bounding_sphere, effect_state) in query {
         let current = match effect_state.driver {
-            crate::gameplay::brick::assets::EffectDriver::Time { duration_seconds: _ } => {
-                time.elapsed_secs()
+            crate::gameplay::brick::assets::EffectDriver::Time {
+                duration_seconds: _,
+            } => time.elapsed_secs(),
+            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => {
+                transform.translation.z
             }
-            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
 
-        let sampled = match sample_curve(&effect_state.keyframes, t) {
-            Err(NextKeyFrameError::NotStarted) => continue,
+        let sampled = match key_frames::sample_key_frames(&effect_state.key_frames, t) {
+            Err(key_frames::NextKeyFrameError::NotStarted) => continue,
             Ok(v) => v,
-            Err(NextKeyFrameError::Finished) => {
-                commands.entity(entity).remove::<brick::components::RicochetSizeEffectState>();
+            Err(key_frames::NextKeyFrameError::Finished) => {
+                commands
+                    .entity(entity)
+                    .remove::<brick::components::RicochetSizeEffectState>();
                 continue;
             }
         };
 
         transform.scale = Vec3::ONE * sampled;
         bounding_sphere.radius = sampled / 2.0;
-    }
-}
-
-
-
-enum NextKeyFrameError {
-    NotStarted,
-    Finished,
-}
-
-// generic sampler for payloads that implement a simple lerp operation
-pub trait Lerp: Copy {
-    fn lerp(a: Self, b: Self, u: f32) -> Self;
-}
-impl Lerp for f32 {
-    fn lerp(a: Self, b: Self, u: f32) -> Self { a + (b - a) * u }
-}
-impl Lerp for bevy::prelude::Vec2 {
-    fn lerp(a: Self, b: Self, u: f32) -> Self { a + (b - a) * u }
-}
-impl Lerp for bevy::prelude::Vec3 {
-    fn lerp(a: Self, b: Self, u: f32) -> Self { a + (b - a) * u }
-}
-
-// generic curve sampler using key t and left-key interp
-fn sample_curve<V: Lerp + Copy>(
-    keyframes: &[assets::Keyframe<V>],
-    t: f32,
-) -> Result<V, NextKeyFrameError> {
-    if keyframes.is_empty() { return Err(NextKeyFrameError::NotStarted); }
-    if t < keyframes[0].t { return Err(NextKeyFrameError::NotStarted); }
-    if t >= keyframes.last().unwrap().t { return Err(NextKeyFrameError::Finished); }
-
-    let right_idx = keyframes.iter().position(|kf| kf.t > t).unwrap();
-    let left_idx = right_idx - 1;
-    let left = &keyframes[left_idx];
-    let right = &keyframes[right_idx];
-
-    match left.interp {
-        assets::Interpolation::Constant => Ok(left.value),
-        assets::Interpolation::Linear => {
-            let span = right.t - left.t;
-            let u = if span <= 0.0 { 0.0 } else { (t - left.t) / span };
-            Ok(V::lerp(left.value, right.value, u))
-        }
     }
 }

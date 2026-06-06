@@ -8,7 +8,7 @@
             driver: Time(duration_seconds: 5),
             attribute: Size(
                 ScalarCurve(
-                    keyframes: [
+                    key_frames: [
                         (t: 0.0, value: 1.0, interp: Linear),
                         (t: 0.5, value: 0.4, interp: Linear),
                         (t: 1.0, value: 1.0, interp: Constant),

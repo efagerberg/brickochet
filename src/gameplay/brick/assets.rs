@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use serde;
 
+use crate::gameplay::brick::key_frames;
+
 #[derive(serde::Deserialize, bevy::asset::Asset, bevy::reflect::TypePath, Clone)]
 pub struct BrickAsset {
     pub name: String,
@@ -29,25 +31,12 @@ pub enum RicochetEffectAttribute {
     Size(ScalarCurve),
 }
 
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub enum Interpolation {
-    Constant,                // hold value until next keyframe (step)
-    Linear,                  // linear between keys
-}
-
-#[derive(Clone, serde::Deserialize)]
-pub struct Keyframe<T> {
-    pub t: f32,
-    pub value: T,
-    pub interp: Interpolation,
-}
-
 #[derive(Clone, serde::Deserialize)]
 pub struct ScalarCurve {
-    pub keyframes: Vec<Keyframe<f32>>,
+    pub key_frames: Vec<key_frames::KeyFrame<f32>>,
 }
 
 #[derive(Clone, serde::Deserialize)]
 pub struct Vec2Curve {
-    pub keyframes: Vec<Keyframe<Vec2>>,
+    pub key_frames: Vec<key_frames::KeyFrame<Vec2>>,
 }
