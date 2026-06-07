@@ -242,12 +242,12 @@ pub fn update_speed_effect(
         Entity,
         &Transform,
         &mut physics::components::Velocity,
-        &mut brick::components::RicochetSpeedEffectState,
+        &brick::components::RicochetSpeedEffectState,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (entity, transform, mut velocity, mut effect_state) in query {
+    for (entity, transform, mut velocity, effect_state) in query {
         let current = match effect_state.driver {
             crate::gameplay::brick::assets::EffectDriver::Time {
                 duration_seconds: _,
@@ -258,9 +258,9 @@ pub fn update_speed_effect(
         };
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
         let sampled = match key_frames::sample_key_frames::<f32>(&effect_state.key_frames, t) {
-            Err(key_frames::NextKeyFrameError::NotStarted) => continue,
+            Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
             Ok(v) => v,
-            Err(key_frames::NextKeyFrameError::Finished) => {
+            Err(key_frames::SampleKeyFramesError::Finished) => {
                 commands
                     .entity(entity)
                     .remove::<brick::components::RicochetSpeedEffectState>();
@@ -283,12 +283,12 @@ pub fn update_curve_effect(
         Entity,
         &Transform,
         &mut physics::components::Curve,
-        &mut brick::components::RicochetCurveEffectState,
+        &brick::components::RicochetCurveEffectState,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (entity, transform, mut curve, mut effect_state) in query {
+    for (entity, transform, mut curve, effect_state) in query {
         let current = match effect_state.driver {
             crate::gameplay::brick::assets::EffectDriver::Time {
                 duration_seconds: _,
@@ -301,9 +301,9 @@ pub fn update_curve_effect(
         let sampled =
             match key_frames::sample_key_frames::<bevy::prelude::Vec2>(&effect_state.key_frames, t)
             {
-                Err(key_frames::NextKeyFrameError::NotStarted) => continue,
+                Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
                 Ok(v) => v,
-                Err(key_frames::NextKeyFrameError::Finished) => {
+                Err(key_frames::SampleKeyFramesError::Finished) => {
                     commands
                         .entity(entity)
                         .remove::<brick::components::RicochetCurveEffectState>();
@@ -337,9 +337,9 @@ pub fn update_size_effect(
         let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
 
         let sampled = match key_frames::sample_key_frames(&effect_state.key_frames, t) {
-            Err(key_frames::NextKeyFrameError::NotStarted) => continue,
+            Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
             Ok(v) => v,
-            Err(key_frames::NextKeyFrameError::Finished) => {
+            Err(key_frames::SampleKeyFramesError::Finished) => {
                 commands
                     .entity(entity)
                     .remove::<brick::components::RicochetSizeEffectState>();

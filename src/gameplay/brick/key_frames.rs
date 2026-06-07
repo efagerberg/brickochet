@@ -3,7 +3,7 @@ use serde;
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub enum Interpolation {
-    Constant, // hold value until next keyframe (step)
+    Constant, // hold value until next key frame (step)
     Linear,   // linear between keys
 }
 
@@ -14,7 +14,8 @@ pub struct KeyFrame<T> {
     pub interp: Interpolation,
 }
 
-pub enum NextKeyFrameError {
+#[derive(Debug, PartialEq)]
+pub enum SampleKeyFramesError {
     NotStarted,
     Finished,
 }
@@ -42,15 +43,15 @@ impl Lerp for bevy::prelude::Vec3 {
 pub fn sample_key_frames<V: Lerp + Copy>(
     key_frames: &[KeyFrame<V>],
     t: f32,
-) -> Result<V, NextKeyFrameError> {
+) -> Result<V, SampleKeyFramesError> {
     if key_frames.is_empty() {
-        return Err(NextKeyFrameError::NotStarted);
+        return Err(SampleKeyFramesError::NotStarted);
     }
     if t < key_frames[0].t {
-        return Err(NextKeyFrameError::NotStarted);
+        return Err(SampleKeyFramesError::NotStarted);
     }
     if t >= key_frames.last().unwrap().t {
-        return Err(NextKeyFrameError::Finished);
+        return Err(SampleKeyFramesError::Finished);
     }
 
     let right_idx = key_frames.iter().position(|kf| kf.t > t).unwrap();
