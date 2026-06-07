@@ -1,4 +1,3 @@
-use bevy::asset;
 use bevy::prelude::*;
 
 use crate::audio;
@@ -6,7 +5,7 @@ use crate::gameplay::brick::key_frames;
 use crate::gameplay::paddle;
 use crate::gameplay::player;
 use crate::gameplay::{brick, playfield};
-use crate::{asset_loading, health, physics, states};
+use crate::{health, physics, states};
 use rand::seq::SliceRandom;
 
 pub fn spawn_brick_wall(
@@ -19,9 +18,7 @@ pub fn spawn_brick_wall(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
-    brick_folder: Res<asset_loading::resources::LoadedBrickFolder>,
     brick_assets: ResMut<Assets<brick::assets::BrickAsset>>,
-    loaded_folders: Res<Assets<asset::LoadedFolder>>,
     playfield: Res<playfield::resources::Playfield>,
 ) {
     let (_, enemy_goal_transform, enemy_goal_bounds) = goal_query
@@ -46,11 +43,9 @@ pub fn spawn_brick_wall(
     let total_width = bricks_x as f32 * brick_size.x;
     let total_height = bricks_y as f32 * brick_size.y;
 
-    let brick_asset_folder = loaded_folders.get(&brick_folder.0).unwrap();
-    let brick_handles: Vec<Handle<brick::assets::BrickAsset>> = brick_asset_folder
-        .handles
+    let brick_handles: Vec<&brick::assets::BrickAsset> =  brick_assets
         .iter()
-        .map(|x: &UntypedHandle| x.clone().typed())
+        .map(|x| x.1)
         .collect();
 
     let mut rng = rand::rng();
@@ -69,17 +64,16 @@ pub fn spawn_brick_wall(
             enemy_goal_transform.translation.z + wall_depth + brick_size.z,
         );
 
-        if let Some(brick_asset) = brick_assets.get(brick_handles[*asset_index].id()) {
-            spawn_brick(
-                &mut commands,
-                &mut meshes,
-                &mut materials,
-                &asset_server,
-                pos,
-                brick_size,
-                brick_asset.clone(),
-            );
-        }
+        let brick_asset = brick_handles[*asset_index];
+        spawn_brick(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            &asset_server,
+            pos,
+            brick_size,
+            brick_asset.clone(),
+        );
     }
 }
 

@@ -36,7 +36,6 @@ pub fn check_assets(
     for event in messages.read() {
         if let AssetEvent::LoadedWithDependencies { id } = event {
             asset_folders_left_to_load.0.remove(id);
-            app_next_state.set(states::GameState::Menu);
         }
     }
     if asset_folders_left_to_load.0.is_empty() {
