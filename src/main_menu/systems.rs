@@ -80,8 +80,10 @@ pub fn menu_ui_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     };
 
-    let right_icon = asset_server.load("textures/icons/right.png");
-    let exit_icon = asset_server.load("textures/icons/exitRight.png");
+    let right_icon = asset_server.get_handle("textures/icons/right.png").unwrap();
+    let exit_icon = asset_server
+        .get_handle("textures/icons/exitRight.png")
+        .unwrap();
 
     commands.spawn((
         DespawnOnExit(states::MenuState::Main),

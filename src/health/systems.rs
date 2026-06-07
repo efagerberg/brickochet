@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{health, physics, rendering};
 
 pub fn handle_health_changed(
-    mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
+    mut health_changed_messages: MessageReader<health::messages::HealthChangedMessage>,
     mut death_messages: MessageWriter<health::messages::DeathMessage>,
     mut health_query: Query<&mut health::components::Health>,
 ) {
@@ -36,7 +36,7 @@ pub fn update_health_color(
         &health::components::Health,
         &health::components::HealthColors,
     )>,
-    mut health_changed_messages: MessageReader<health::messages::HealChangedMessage>,
+    mut health_changed_messages: MessageReader<health::messages::HealthChangedMessage>,
     mut material_colors_changed_messages: MessageWriter<
         rendering::messages::MaterialColorsChangedMessage,
     >,
@@ -63,7 +63,7 @@ pub fn handle_collision(
     collided_query: Query<&health::components::ChangeOnCollision>,
     health_query: Query<&health::components::Health>,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
-    mut health_changed_messages: MessageWriter<health::messages::HealChangedMessage>,
+    mut health_changed_messages: MessageWriter<health::messages::HealthChangedMessage>,
 ) {
     for message in collision_messages.read() {
         for &entity in [message.a, message.b].iter() {
@@ -72,7 +72,7 @@ pub fn handle_collision(
                     if !health_query.contains(target) {
                         continue;
                     }
-                    health_changed_messages.write(health::messages::HealChangedMessage {
+                    health_changed_messages.write(health::messages::HealthChangedMessage {
                         entity: target,
                         delta: change_on_collision.delta,
                     });

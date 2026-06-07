@@ -6,7 +6,7 @@ use crate::{physics, rendering, test_utils};
 
 fn create_health_change_app() -> App {
     let mut app = App::new();
-    app.add_message::<messages::HealChangedMessage>()
+    app.add_message::<messages::HealthChangedMessage>()
         .add_message::<messages::DeathMessage>()
         .add_systems(Update, systems::handle_health_changed);
     app
@@ -48,10 +48,11 @@ fn test_health_change(case: HealthChangedCase) {
     let mut app = create_health_change_app();
     let entity = app.world_mut().spawn(case.starting_health).id();
 
-    app.world_mut().write_message(messages::HealChangedMessage {
-        entity,
-        delta: case.delta,
-    });
+    app.world_mut()
+        .write_message(messages::HealthChangedMessage {
+            entity,
+            delta: case.delta,
+        });
     app.update();
 
     let health = app.world().get::<components::Health>(entity).unwrap();
@@ -128,7 +129,7 @@ struct UpdateHealthColorCase {
 )]
 fn test_update_health_color(case: UpdateHealthColorCase) {
     let mut app = App::new();
-    app.add_message::<messages::HealChangedMessage>();
+    app.add_message::<messages::HealthChangedMessage>();
     app.add_message::<rendering::messages::MaterialColorsChangedMessage>();
     app.add_systems(Update, systems::update_health_color);
     let entity = app
@@ -143,8 +144,8 @@ fn test_update_health_color(case: UpdateHealthColorCase) {
         .id();
     let mut writer = app
         .world_mut()
-        .resource_mut::<Messages<messages::HealChangedMessage>>();
-    writer.write(messages::HealChangedMessage { entity, delta: 0 });
+        .resource_mut::<Messages<messages::HealthChangedMessage>>();
+    writer.write(messages::HealthChangedMessage { entity, delta: 0 });
     app.update();
 
     let mut expected: Vec<rendering::messages::MaterialColorsChangedMessage> = vec![];
@@ -186,7 +187,7 @@ struct HandleCollisionCase {
     }; "self and others")]
 fn test_handle_collision(case: HandleCollisionCase) {
     let mut app = App::new();
-    app.add_message::<messages::HealChangedMessage>();
+    app.add_message::<messages::HealthChangedMessage>();
     app.add_message::<physics::messages::CollisionMessage>();
     app.add_systems(Update, systems::handle_collision);
 
@@ -238,7 +239,7 @@ fn test_handle_collision(case: HandleCollisionCase) {
 
     let expected: Vec<_> = affected_targets
         .into_iter()
-        .map(|e| messages::HealChangedMessage {
+        .map(|e| messages::HealthChangedMessage {
             entity: e,
             delta: case.delta,
         })

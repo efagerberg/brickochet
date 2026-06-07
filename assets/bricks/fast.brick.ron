@@ -1,0 +1,22 @@
+(
+    name: "Fast Brick",
+    health: 2,
+    collision_sfx: Some((path: "audio/fastFlame.ogg", volume: 1.0)),
+    light_fx: Some((
+        effect_type: Strobe(speed: 12.0, color: (1.0, 0.3, 0.0)),
+        intensity: 1.5,
+    )),
+    ricochet_effect: Some(
+        (
+            driver: DistanceToPlayer,
+            attribute: Speed(
+                ScalarCurve(
+                    key_frames: [
+                        (t: 0.0, value: 40, interp: Constant),
+                        (t: 0.95, value: 25, interp: Constant)
+                    ],
+                ),
+            )
+        )
+    ),
+)

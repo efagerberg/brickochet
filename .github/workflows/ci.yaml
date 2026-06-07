@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -17,29 +21,38 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Cache
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@nightly
         with:
           components: llvm-tools-preview
+
       - name: Install llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
+
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+
       - name: Run cargo test
-        run: cargo llvm-cov --all-features --workspace --codecov --output-path codecov.json
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo llvm-cov --all-features --workspace --locked --codecov --output-path codecov.json
+
       - name: Upload coverage to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json
@@ -53,35 +66,44 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
       - name: Cache
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.toml') }}
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
+
       - name: Install Dependencies
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libwayland-dev
+
       - name: Run clippy
-        run: cargo clippy -- -D warnings
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo clippy --all-features --workspace --locked -- -D warnings
 
   format:
     name: Format
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
+
       - name: Run cargo fmt
         run: cargo fmt --all -- --check

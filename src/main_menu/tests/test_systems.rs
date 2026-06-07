@@ -72,6 +72,9 @@ fn setup_menu_action_test(case: &MenuActionTestCase) -> (App, Entity) {
         bevy::state::app::StatesPlugin,
         states::plugin,
     ));
+    app.world_mut()
+        .resource_mut::<NextState<states::GameState>>()
+        .set(states::GameState::Menu);
     app.add_systems(Update, systems::menu_action);
 
     let entity = app
