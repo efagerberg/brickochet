@@ -206,31 +206,37 @@ pub fn initialize_ricochet_effect(
             let definition = ricochet_effect.definition.clone();
             match definition.attribute {
                 brick::assets::RicochetEffectAttribute::Speed(scalar_curve) => {
-                    let effect_state = brick::components::RicochetSpeedEffectState {
-                        driver: definition.driver,
-                        start,
-                        end,
-                        key_frames: scalar_curve.key_frames,
+                    let effect = brick::components::RicochetSpeedEffect {
+                        0: brick::components::RicochetEffect {
+                            driver: definition.driver,
+                            start,
+                            end,
+                            key_frames: scalar_curve.key_frames,
+                        },
                     };
-                    commands.entity(message.a).insert(effect_state);
+                    commands.entity(message.a).insert(effect);
                 }
                 brick::assets::RicochetEffectAttribute::Curve(vec2_curve) => {
-                    let effect_state = brick::components::RicochetCurveEffectState {
-                        driver: definition.driver,
-                        start,
-                        end,
-                        key_frames: vec2_curve.key_frames,
+                    let effect = brick::components::RicochetCurveEffect {
+                        0: brick::components::RicochetEffect {
+                            driver: definition.driver,
+                            start,
+                            end,
+                            key_frames: vec2_curve.key_frames,
+                        },
                     };
-                    commands.entity(message.a).insert(effect_state);
+                    commands.entity(message.a).insert(effect);
                 }
                 brick::assets::RicochetEffectAttribute::Size(scalar_curve) => {
-                    let effect_state = brick::components::RicochetSizeEffectState {
-                        driver: definition.driver,
-                        start,
-                        end,
-                        key_frames: scalar_curve.key_frames,
+                    let effect = brick::components::RicochetSizeEffect {
+                        0: brick::components::RicochetEffect {
+                            driver: definition.driver,
+                            start,
+                            end,
+                            key_frames: scalar_curve.key_frames,
+                        },
                     };
-                    commands.entity(message.a).insert(effect_state);
+                    commands.entity(message.a).insert(effect);
                 }
             }
         }
@@ -242,13 +248,13 @@ pub fn update_speed_effect(
         Entity,
         &Transform,
         &mut physics::components::Velocity,
-        &brick::components::RicochetSpeedEffectState,
+        &brick::components::RicochetSpeedEffect,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (entity, transform, mut velocity, effect_state) in query {
-        let current = match effect_state.driver {
+    for (entity, transform, mut velocity, effect) in query {
+        let current = match effect.0.driver {
             crate::gameplay::brick::assets::EffectDriver::Time {
                 duration_seconds: _,
             } => time.elapsed_secs(),
@@ -256,14 +262,14 @@ pub fn update_speed_effect(
                 transform.translation.z
             }
         };
-        let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
-        let sampled = match key_frames::sample_key_frames::<f32>(&effect_state.key_frames, t) {
+        let t = (current - effect.0.start) / (effect.0.end - effect.0.start);
+        let sampled = match key_frames::sample_key_frames::<f32>(&effect.0.key_frames, t) {
             Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
             Ok(v) => v,
             Err(key_frames::SampleKeyFramesError::Finished) => {
                 commands
                     .entity(entity)
-                    .remove::<brick::components::RicochetSpeedEffectState>();
+                    .remove::<brick::components::RicochetSpeedEffect>();
                 continue;
             }
         };
@@ -283,13 +289,13 @@ pub fn update_curve_effect(
         Entity,
         &Transform,
         &mut physics::components::Curve,
-        &brick::components::RicochetCurveEffectState,
+        &brick::components::RicochetCurveEffect,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (entity, transform, mut curve, effect_state) in query {
-        let current = match effect_state.driver {
+    for (entity, transform, mut curve, effect) in query {
+        let current = match effect.0.driver {
             crate::gameplay::brick::assets::EffectDriver::Time {
                 duration_seconds: _,
             } => time.elapsed_secs(),
@@ -297,16 +303,15 @@ pub fn update_curve_effect(
                 transform.translation.z
             }
         };
-        let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
+        let t = (current - effect.0.start) / (effect.0.end - effect.0.start);
         let sampled =
-            match key_frames::sample_key_frames::<bevy::prelude::Vec2>(&effect_state.key_frames, t)
-            {
+            match key_frames::sample_key_frames::<bevy::prelude::Vec2>(&effect.0.key_frames, t) {
                 Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
                 Ok(v) => v,
                 Err(key_frames::SampleKeyFramesError::Finished) => {
                     commands
                         .entity(entity)
-                        .remove::<brick::components::RicochetCurveEffectState>();
+                        .remove::<brick::components::RicochetCurveEffect>();
                     continue;
                 }
             };
@@ -320,13 +325,13 @@ pub fn update_size_effect(
         Entity,
         &mut Transform,
         &mut physics::components::BoundingSphere,
-        &brick::components::RicochetSizeEffectState,
+        &brick::components::RicochetSizeEffect,
     )>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (entity, mut transform, mut bounding_sphere, effect_state) in query {
-        let current = match effect_state.driver {
+    for (entity, mut transform, mut bounding_sphere, effect) in query {
+        let current = match effect.0.driver {
             crate::gameplay::brick::assets::EffectDriver::Time {
                 duration_seconds: _,
             } => time.elapsed_secs(),
@@ -334,15 +339,15 @@ pub fn update_size_effect(
                 transform.translation.z
             }
         };
-        let t = (current - effect_state.start) / (effect_state.end - effect_state.start);
+        let t = (current - effect.0.start) / (effect.0.end - effect.0.start);
 
-        let sampled = match key_frames::sample_key_frames(&effect_state.key_frames, t) {
+        let sampled = match key_frames::sample_key_frames(&effect.0.key_frames, t) {
             Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
             Ok(v) => v,
             Err(key_frames::SampleKeyFramesError::Finished) => {
                 commands
                     .entity(entity)
-                    .remove::<brick::components::RicochetSizeEffectState>();
+                    .remove::<brick::components::RicochetSizeEffect>();
                 continue;
             }
         };

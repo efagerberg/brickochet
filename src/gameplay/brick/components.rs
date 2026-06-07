@@ -11,25 +11,18 @@ pub struct RicochetEffectConfig {
 }
 
 #[derive(Component)]
-pub struct RicochetSpeedEffectState {
+pub struct RicochetEffect<T> {
     pub driver: assets::EffectDriver,
     pub start: f32,
     pub end: f32,
-    pub key_frames: Vec<key_frames::KeyFrame<f32>>,
+    pub key_frames: Vec<key_frames::KeyFrame<T>>,
 }
 
 #[derive(Component)]
-pub struct RicochetCurveEffectState {
-    pub driver: assets::EffectDriver,
-    pub start: f32,
-    pub end: f32,
-    pub key_frames: Vec<key_frames::KeyFrame<Vec2>>,
-}
+pub struct RicochetSpeedEffect(pub RicochetEffect<f32>);
 
 #[derive(Component)]
-pub struct RicochetSizeEffectState {
-    pub driver: assets::EffectDriver,
-    pub start: f32,
-    pub end: f32,
-    pub key_frames: Vec<key_frames::KeyFrame<f32>>,
-}
+pub struct RicochetCurveEffect(pub RicochetEffect<Vec2>);
+
+#[derive(Component)]
+pub struct RicochetSizeEffect(pub RicochetEffect<f32>);

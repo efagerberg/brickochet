@@ -83,7 +83,10 @@ struct SampleKeyFramesCase<T> {
     };
     "after last key frame"
 )]
-fn test_sample_key_frames<T>(case: SampleKeyFramesCase<T>) where T: key_frames::Lerp + Copy + PartialEq + std::fmt::Debug {
+fn test_sample_key_frames<T>(case: SampleKeyFramesCase<T>)
+where
+    T: key_frames::Lerp + Copy + PartialEq + std::fmt::Debug,
+{
     let result = key_frames::sample_key_frames(&case.key_frames, case.t);
     assert_eq!(result, case.expected);
 }
