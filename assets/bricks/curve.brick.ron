@@ -1,8 +1,11 @@
 (
     name: "Curve Brick",
     health: 1,
-    icon: "textures/brick_icon.png",
     collision_sfx: Some("audio/groundImpact.ogg"),
+    light_fx: Some((
+        effect_type: Wave(speed: 1.5, color: (0.0, 0.8, 1.0)),
+        intensity: 1.0,
+    )),
     ricochet_effect: Some(
         (
             driver: DistanceToPlayer,

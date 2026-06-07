@@ -1,7 +1,4 @@
 (
     name: "Basic Brick",
     health: 3,
-    icon: "textures/brick_icon.png",
-    collision_sfx: None,
-    ricochet: None
 )

@@ -1,8 +1,11 @@
 (
     name: "Shrink Brick",
     health: 2,
-    icon: "textures/brick_icon.png",
     collision_sfx: Some("audio/groundImpact.ogg"),
+    light_fx: Some((
+        effect_type: Pulse(speed: 1.0, color: (1.0, 0.0, 0.8)),
+        intensity: 1.2,
+    )),
     ricochet_effect: Some(
         (
             driver: Time(duration_seconds: 5),

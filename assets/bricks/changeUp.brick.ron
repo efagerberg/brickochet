@@ -1,8 +1,11 @@
 (
     name: "Change Up Brick",
     health: 1,
-    icon: "textures/brick_icon.png",
     collision_sfx: Some("audio/groundImpact.ogg"),
+    light_fx: Some((
+        effect_type: Interference(freq1: 3.0, freq2: 7.0, color: (0.8, 1.0, 0.0)),
+        intensity: 1.0,
+    )),
     ricochet_effect: Some(
         (
             driver: DistanceToPlayer,

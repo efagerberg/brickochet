@@ -7,6 +7,7 @@ use crate::gameplay::paddle;
 use crate::gameplay::player;
 use crate::gameplay::{brick, playfield};
 use crate::{asset_loading, health, physics, states};
+use rand::seq::SliceRandom;
 
 pub fn spawn_brick_wall(
     mut commands: Commands,
@@ -52,9 +53,13 @@ pub fn spawn_brick_wall(
         .map(|x: &UntypedHandle| x.clone().typed())
         .collect();
 
-    let mut asset_index = 0;
+    let mut rng = rand::rng();
+    let mut brick_order: Vec<usize> = (0..total_bricks as usize)
+        .map(|i| i % brick_handles.len())
+        .collect();
+    brick_order.shuffle(&mut rng);
 
-    for index in 0..total_bricks {
+    for (index, asset_index) in (0..total_bricks).zip(brick_order.iter()) {
         let x = index % bricks_x;
         let y = index / bricks_x;
 
@@ -64,7 +69,7 @@ pub fn spawn_brick_wall(
             enemy_goal_transform.translation.z + wall_depth + brick_size.z,
         );
 
-        if let Some(brick_asset) = brick_assets.get(brick_handles[asset_index].id()) {
+        if let Some(brick_asset) = brick_assets.get(brick_handles[*asset_index].id()) {
             spawn_brick(
                 &mut commands,
                 &mut meshes,
@@ -75,7 +80,6 @@ pub fn spawn_brick_wall(
                 brick_asset.clone(),
             );
         }
-        asset_index = ((index as usize) + 1) % brick_assets.len();
     }
 }
 
@@ -101,7 +105,6 @@ fn spawn_brick(
             ))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::BLACK,
-                unlit: true,
                 ..default()
             })),
         ))
@@ -137,6 +140,14 @@ fn spawn_brick(
                 base_color: Color::from(healthy_color),
                 ..default()
             })),
+            children![(
+                Mesh3d(meshes.add(Rectangle::new(
+                    size.x - border_padding,
+                    size.y - border_padding
+                ))),
+                Transform::from_xyz(0.0, 0.0, size.z / 2.0 + 0.01),
+                GlobalTransform::default()
+            )],
             health::components::Health {
                 max: brick_asset.health,
                 current: brick_asset.health,
@@ -163,6 +174,12 @@ fn spawn_brick(
             .entity(main)
             .insert(brick::components::RicochetEffectConfig { definition });
     }
+    if let Some(border_effect) = &brick_asset.light_fx {
+        commands
+            .entity(main)
+            .insert(brick::components::LightFX(border_effect.clone()));
+    }
+
     commands.entity(main).add_child(border);
 }
 
@@ -354,5 +371,43 @@ pub fn update_size_effect(
 
         transform.scale = Vec3::ONE * sampled;
         bounding_sphere.radius = sampled / 2.0;
+    }
+}
+
+pub fn animate_light_fx(
+    query: Query<(
+        &brick::components::LightFX,
+        &MeshMaterial3d<StandardMaterial>,
+    )>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    time: Res<Time>,
+) {
+    for (border_effect, material_handle) in &query {
+        let t = time.elapsed_secs();
+
+        let (pulse, [r, g, b]) = match &border_effect.0.effect_type {
+            brick::assets::LightFXType::Pulse { speed, color } => {
+                ((t * speed).sin() * 0.5 + 0.5, *color)
+            }
+            brick::assets::LightFXType::Wave { speed, color } => {
+                ((t * speed).sin() * 0.5 + 0.5, *color)
+            }
+            brick::assets::LightFXType::Strobe { speed, color } => {
+                (((t * speed).sin() * 0.5 + 0.5).powf(8.0), *color)
+            }
+            brick::assets::LightFXType::Interference {
+                freq1,
+                freq2,
+                color,
+            } => (((t * freq1).sin() * (t * freq2).sin()) * 0.5 + 0.5, *color),
+        };
+
+        if let Some(mat) = materials.get_mut(material_handle) {
+            mat.emissive = LinearRgba::rgb(
+                r * pulse * border_effect.0.intensity,
+                g * pulse * border_effect.0.intensity,
+                b * pulse * border_effect.0.intensity,
+            );
+        }
     }
 }

@@ -23,6 +23,7 @@ pub fn plugin(app: &mut App) {
     .add_systems(
         Update,
         (
+            brick::systems::animate_light_fx,
             paddle::systems::paddle_mouse_control,
             (
                 paddle::systems::initialize_paddle_motion,
@@ -60,7 +61,9 @@ pub fn plugin(app: &mut App) {
     )
     .add_systems(
         PostUpdate,
-        playfield::systems::highlight_depth_lines
+        (
+            playfield::systems::highlight_depth_lines,
+        )
             .before(crate::rendering::RenderingSet::Integrate)
             .run_if(in_state(states::GameState::Gameplay)),
     );

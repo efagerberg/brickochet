@@ -1,8 +1,11 @@
 (
     name: "Fast Brick",
     health: 2,
-    icon: "textures/brick_icon.png",
     collision_sfx: Some("audio/groundImpact.ogg"),
+    light_fx: Some((
+        effect_type: Strobe(speed: 12.0, color: (1.0, 0.3, 0.0)),
+        intensity: 1.5,
+    )),
     ricochet_effect: Some(
         (
             driver: DistanceToPlayer,

@@ -26,3 +26,6 @@ pub struct RicochetCurveEffect(pub RicochetEffect<Vec2>);
 
 #[derive(Component)]
 pub struct RicochetSizeEffect(pub RicochetEffect<f32>);
+
+#[derive(Component)]
+pub struct LightFX(pub assets::LightFX);

@@ -3,12 +3,39 @@ use serde;
 
 use crate::gameplay::brick::key_frames;
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub enum LightFXType {
+    Pulse {
+        speed: f32,
+        color: [f32; 3],
+    },
+    Wave {
+        speed: f32,
+        color: [f32; 3],
+    },
+    Strobe {
+        speed: f32,
+        color: [f32; 3],
+    },
+    Interference {
+        freq1: f32,
+        freq2: f32,
+        color: [f32; 3],
+    },
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct LightFX {
+    pub effect_type: LightFXType,
+    pub intensity: f32,
+}
+
 #[derive(serde::Deserialize, bevy::asset::Asset, bevy::reflect::TypePath, Clone)]
 pub struct BrickAsset {
     pub name: String,
     pub health: u8,
-    pub icon: String,
     pub collision_sfx: Option<String>,
+    pub light_fx: Option<LightFX>,
     pub ricochet_effect: Option<RicochetEffectDef>,
 }
 
