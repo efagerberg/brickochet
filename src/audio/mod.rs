@@ -7,7 +7,7 @@ pub mod systems;
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
-        PostUpdate,
+        Update,
         systems::play_collide_sfx.run_if(in_state(states::GameState::Gameplay)),
     );
 }

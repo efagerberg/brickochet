@@ -1,7 +1,7 @@
 (
     name: "Fast Brick",
     health: 2,
-    collision_sfx: Some("audio/groundImpact.ogg"),
+    collision_sfx: Some((path: "audio/fastFlame.ogg", volume: 1.0)),
     light_fx: Some((
         effect_type: Strobe(speed: 12.0, color: (1.0, 0.3, 0.0)),
         intensity: 1.5,

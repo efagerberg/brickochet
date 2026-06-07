@@ -356,11 +356,12 @@ fn spawn_ball(
         Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
         MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
         DespawnOnExit(states::GameState::Gameplay),
-        audio::components::CollisionSFX(
-            asset_server
+        audio::components::CollisionSFX {
+            handle: asset_server
                 .get_handle::<AudioSource>("audio/tennisBallHit.ogg")
                 .unwrap(),
-        ),
+            volume: 1.0,
+        },
     ));
 }
 

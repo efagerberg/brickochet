@@ -113,9 +113,11 @@ fn spawn_brick(
     let healthy_color = LinearRgba::rgb(0.0, 1.0, 0.0);
     let critical_color = LinearRgba::rgb(1.0, 0.0, 0.0);
 
-    let sfx_optional_handle = brick_asset
-        .collision_sfx
-        .and_then(|path| asset_server.get_handle::<AudioSource>(path));
+    let sfx_with_handle = brick_asset.collision_sfx.and_then(|sfx| {
+        asset_server
+            .get_handle::<AudioSource>(&sfx.path)
+            .map(|h| (h, sfx.volume))
+    });
 
     // Main colored brick
     let main = commands
@@ -164,10 +166,10 @@ fn spawn_brick(
         ))
         .id();
 
-    if let Some(sfx) = sfx_optional_handle.clone() {
+    if let Some((handle, volume)) = sfx_with_handle.clone() {
         commands
             .entity(main)
-            .insert(audio::components::CollisionSFX(sfx));
+            .insert(audio::components::CollisionSFX { handle, volume });
     }
     if let Some(definition) = brick_asset.ricochet_effect {
         commands
@@ -223,36 +225,33 @@ pub fn initialize_ricochet_effect(
             let definition = ricochet_effect.definition.clone();
             match definition.attribute {
                 brick::assets::RicochetEffectAttribute::Speed(scalar_curve) => {
-                    let effect = brick::components::RicochetSpeedEffect {
-                        0: brick::components::RicochetEffect {
+                    let effect =
+                        brick::components::RicochetSpeedEffect(brick::components::RicochetEffect {
                             driver: definition.driver,
                             start,
                             end,
                             key_frames: scalar_curve.key_frames,
-                        },
-                    };
+                        });
                     commands.entity(message.a).insert(effect);
                 }
                 brick::assets::RicochetEffectAttribute::Curve(vec2_curve) => {
-                    let effect = brick::components::RicochetCurveEffect {
-                        0: brick::components::RicochetEffect {
+                    let effect =
+                        brick::components::RicochetCurveEffect(brick::components::RicochetEffect {
                             driver: definition.driver,
                             start,
                             end,
                             key_frames: vec2_curve.key_frames,
-                        },
-                    };
+                        });
                     commands.entity(message.a).insert(effect);
                 }
                 brick::assets::RicochetEffectAttribute::Size(scalar_curve) => {
-                    let effect = brick::components::RicochetSizeEffect {
-                        0: brick::components::RicochetEffect {
+                    let effect =
+                        brick::components::RicochetSizeEffect(brick::components::RicochetEffect {
                             driver: definition.driver,
                             start,
                             end,
                             key_frames: scalar_curve.key_frames,
-                        },
-                    };
+                        });
                     commands.entity(message.a).insert(effect);
                 }
             }

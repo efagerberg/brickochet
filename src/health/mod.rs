@@ -14,8 +14,7 @@ pub fn plugin(app: &mut App) {
         .add_message::<messages::DeathMessage>()
         .add_systems(
             Update,
-            (systems::handle_health_changed, systems::handle_death)
-                .run_if(in_state(states::GameState::Gameplay)),
+            (systems::handle_health_changed).run_if(in_state(states::GameState::Gameplay)),
         )
         .add_systems(
             FixedUpdate,
@@ -25,7 +24,7 @@ pub fn plugin(app: &mut App) {
         )
         .add_systems(
             PostUpdate,
-            systems::update_health_color
+            (systems::update_health_color, systems::handle_death)
                 .before(crate::rendering::RenderingSet::Integrate)
                 .run_if(in_state(states::GameState::Gameplay)),
         );

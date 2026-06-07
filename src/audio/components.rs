@@ -1,4 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct CollisionSFX(pub Handle<AudioSource>);
+pub struct CollisionSFX {
+    pub handle: Handle<AudioSource>,
+    pub volume: f32,
+}

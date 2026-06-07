@@ -30,11 +30,17 @@ pub struct LightFX {
     pub intensity: f32,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct CollisionSFX {
+    pub path: String,
+    pub volume: f32,
+}
+
 #[derive(serde::Deserialize, bevy::asset::Asset, bevy::reflect::TypePath, Clone)]
 pub struct BrickAsset {
     pub name: String,
     pub health: u8,
-    pub collision_sfx: Option<String>,
+    pub collision_sfx: Option<CollisionSFX>,
     pub light_fx: Option<LightFX>,
     pub ricochet_effect: Option<RicochetEffectDef>,
 }
