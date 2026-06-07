@@ -43,10 +43,7 @@ pub fn spawn_brick_wall(
     let total_width = bricks_x as f32 * brick_size.x;
     let total_height = bricks_y as f32 * brick_size.y;
 
-    let brick_handles: Vec<&brick::assets::BrickAsset> =  brick_assets
-        .iter()
-        .map(|x| x.1)
-        .collect();
+    let brick_handles: Vec<&brick::assets::BrickAsset> = brick_assets.iter().map(|x| x.1).collect();
 
     let mut rng = rand::rng();
     let mut brick_order: Vec<usize> = (0..total_bricks as usize)
