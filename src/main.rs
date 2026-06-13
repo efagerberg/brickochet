@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window;
 use bevy_common_assets::ron;
-use bevy_inspector_egui::{bevy_egui, quick};
+use bevy_inspector_egui::bevy_egui;
 
 use crate::gameplay::brick;
 
@@ -59,7 +59,13 @@ fn main() -> Result<(), BevyError> {
 
     #[cfg(debug_assertions)]
     {
-        app.add_plugins(quick::WorldInspectorPlugin::default());
+        use bevy::diagnostic;
+        use bevy_inspector_egui::quick;
+        app.add_plugins((
+            quick::WorldInspectorPlugin::default(),
+            diagnostic::LogDiagnosticsPlugin::default(),
+            diagnostic::FrameTimeDiagnosticsPlugin::default(),
+        ));
     }
 
     app.run();

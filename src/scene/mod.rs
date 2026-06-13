@@ -101,6 +101,8 @@ fn spawn_playfield(
     let playfield = gameplay::playfield::resources::Playfield {
         wall_line_default_color: line_default_color,
         wall_line_highlight_color: line_highlight_color,
+        ball_distance_near_color: LinearRgba::new(0.25, 0.0, 0.0, 1.0),
+        ball_distance_far_color: LinearRgba::new(0.0, 0.125, 0.125, 1.0),
         brick_size: Vec3::new(4.0, 2.0, 0.25),
     };
     commands.insert_resource(playfield.clone());

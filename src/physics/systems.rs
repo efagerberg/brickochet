@@ -16,7 +16,7 @@ pub fn apply_curve(
     query: Query<(
         &mut physics::components::Velocity,
         &physics::components::Curve,
-        &mut Transform
+        &mut Transform,
     )>,
 ) {
     let delta_secs = time.delta_secs();
