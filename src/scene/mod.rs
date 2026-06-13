@@ -303,11 +303,11 @@ fn spawn_paddle(
     playfield_half_size: Vec3,
 ) -> Entity {
     let bounds = physics::components::BoundingCuboid {
-        half_extents: Vec3::new(2.0, 1.0, 0.1),
+        half_extents: Vec3::new(1.5, 1.0, 0.1),
     };
     let cuboid_dimensions = bounds.half_extents * 2.0;
-    let healthy_color = LinearRgba::new(0.5, 0.7, 1.0, 0.65);
-    let critical_color = LinearRgba::new(1.0, 0.0, 0.0, 0.65);
+    let healthy_color = LinearRgba::new(0.0, 0.0, 0.0, 0.85);
+    let critical_color = LinearRgba::new(0.05, 0.0, 0.0, 0.85);
     commands
         .spawn((
             gameplay::paddle::components::Paddle,
