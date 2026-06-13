@@ -343,6 +343,14 @@ fn spawn_ball(
     asset_server: Res<AssetServer>,
 ) {
     let ball_modifiers = gameplay::ball::components::BallModifiers::starting();
+    let ball_texture_handle = asset_server.get_handle("textures/ball.png").unwrap();
+    let ball_material = materials.add(StandardMaterial {
+        base_color_texture: Some(ball_texture_handle),
+        base_color: Color::srgba(1.0, 1.0, 1.0, 0.95), // tint, WHITE means no tint so texture colors show as-is
+        emissive: LinearRgba::rgb(0.01, 0.02, 0.01),
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    });
     commands.spawn((
         ball_modifiers.clone(),
         Name::new("Ball"),
@@ -354,7 +362,7 @@ fn spawn_ball(
         Transform::default(),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),
-        MeshMaterial3d(materials.add(Color::srgb_u8(0, 200, 0))),
+        MeshMaterial3d(ball_material),
         DespawnOnExit(states::GameState::Gameplay),
         audio::components::CollisionSFX {
             handle: asset_server

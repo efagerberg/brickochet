@@ -16,12 +16,22 @@ pub fn apply_curve(
     query: Query<(
         &mut physics::components::Velocity,
         &physics::components::Curve,
+        &mut Transform
     )>,
 ) {
     let delta_secs = time.delta_secs();
-    for (mut velocity, curve) in query {
+    for (mut velocity, curve, mut transform) in query {
         velocity.0.x += curve.0.x * delta_secs;
         velocity.0.y += curve.0.y * delta_secs;
+
+        // Spin axis is perpendicular to the curve direction
+        // e.g. curving left/right = spinning around Z, curving up/down = spinning around X
+        let spin_axis = Vec3::new(curve.0.y, -curve.0.x, 0.0).normalize_or_zero();
+        let spin_rate = curve.0.length(); // stronger curve = faster spin
+
+        if spin_rate > 0.0 {
+            transform.rotate(Quat::from_axis_angle(spin_axis, spin_rate * delta_secs));
+        }
     }
 }
 
