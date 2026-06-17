@@ -1,5 +1,6 @@
 use crate::physics;
 use bevy::prelude::*;
+use std::collections::HashSet;
 
 pub fn apply_velocity(
     time: Res<Time>,
@@ -11,19 +12,12 @@ pub fn apply_velocity(
     }
 }
 
-pub fn apply_curve(
+pub fn apply_curve_spin(
     time: Res<Time>,
-    query: Query<(
-        &mut physics::components::Velocity,
-        &physics::components::Curve,
-        &mut Transform,
-    )>,
+    query: Query<(&physics::components::Curve, &mut Transform)>,
 ) {
     let delta_secs = time.delta_secs();
-    for (mut velocity, curve, mut transform) in query {
-        velocity.0.x += curve.0.x * delta_secs;
-        velocity.0.y += curve.0.y * delta_secs;
-
+    for (curve, mut transform) in query {
         // Spin axis is perpendicular to the curve direction
         // e.g. curving left/right = spinning around Z, curving up/down = spinning around X
         let spin_axis = Vec3::new(curve.0.y, -curve.0.x, 0.0).normalize_or_zero();
@@ -35,7 +29,19 @@ pub fn apply_curve(
     }
 }
 
-use std::collections::HashSet;
+pub fn add_curve_velocity(
+    time: Res<Time>,
+    query: Query<(
+        &mut physics::components::Velocity,
+        &physics::components::Curve,
+    )>,
+) {
+    let delta_secs = time.delta_secs();
+    for (mut velocity, curve) in query {
+        velocity.0.x += curve.0.x * delta_secs;
+        velocity.0.y += curve.0.y * delta_secs;
+    }
+}
 
 pub fn detect_collisions(
     spheres: Query<(Entity, &Transform, &physics::components::BoundingSphere)>,

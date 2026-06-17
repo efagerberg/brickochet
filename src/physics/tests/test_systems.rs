@@ -47,7 +47,7 @@ fn test_apply_velocity_moves_transform(case: ApplyVelocityCase) {
 }
 
 #[derive(Default)]
-struct ApplyCurveCase {
+struct AddCurveVelocityCase {
     initial_velocity: Vec3,
     curve: Vec2,
     delta_secs: f32,
@@ -55,7 +55,7 @@ struct ApplyCurveCase {
 }
 
 #[test_case(
-    ApplyCurveCase {
+    AddCurveVelocityCase {
         initial_velocity: Vec3::new(1.0, 1.0, 0.0),
         curve: Vec2::new(0.5, -0.25),
         delta_secs: 1.0,
@@ -63,14 +63,14 @@ struct ApplyCurveCase {
     }
 ; "curve modifies x and y velocity")]
 #[test_case(
-    ApplyCurveCase {
+    AddCurveVelocityCase {
         initial_velocity: Vec3::ZERO,
         curve: Vec2::new(1.0, 1.0),
         delta_secs: 1.0,
         expected_velocity: Vec3::new(1.0, 1.0, 0.0),
     }
 ; "curve applied to zero velocity")]
-fn test_apply_curve_modifies_velocity(case: ApplyCurveCase) {
+fn test_add_curve_velocity_modifies_velocity(case: AddCurveVelocityCase) {
     let mut app = App::new();
 
     let entity = app
@@ -81,7 +81,7 @@ fn test_apply_curve_modifies_velocity(case: ApplyCurveCase) {
         ))
         .id();
 
-    app.add_systems(Update, physics::systems::apply_curve);
+    app.add_systems(Update, physics::systems::add_curve_velocity);
 
     let mut time: Time = Time::default();
     time.advance_by(std::time::Duration::from_secs_f32(case.delta_secs));
@@ -94,6 +94,78 @@ fn test_apply_curve_modifies_velocity(case: ApplyCurveCase) {
         .get::<physics::components::Velocity>(entity)
         .unwrap();
     assert_eq!(velocity.0, case.expected_velocity);
+}
+
+struct ApplyCurveSpinCase {
+    curve: Vec2,
+    delta_secs: f32,
+    expected_axis: Vec3,
+    expected_angle_rads: f32,
+}
+
+#[test_case(ApplyCurveSpinCase {
+    curve: Vec2::new(1.0, 0.0),
+    delta_secs: 1.0,
+    expected_axis: Vec3::NEG_Y,
+    expected_angle_rads: 1.0,
+} ; "positive X curve spins around NEG_Y")]
+#[test_case(ApplyCurveSpinCase {
+    curve: Vec2::new(0.0, 1.0),
+    delta_secs: 1.0,
+    expected_axis: Vec3::X,
+    expected_angle_rads: 1.0,
+} ; "positive Y curve spins around X")]
+#[test_case(ApplyCurveSpinCase {
+    curve: Vec2::new(-1.0, 0.0),
+    delta_secs: 1.0,
+    expected_axis: Vec3::Y,
+    expected_angle_rads: 1.0,
+} ; "negative X curve spins around Y")]
+#[test_case(ApplyCurveSpinCase {
+    curve: Vec2::new(0.0, -1.0),
+    delta_secs: 1.0,
+    expected_axis: Vec3::NEG_X,
+    expected_angle_rads: 1.0,
+} ; "negative Y curve spins around NEG_X")]
+#[test_case(ApplyCurveSpinCase {
+    curve: Vec2::new(1.0, 0.0),
+    delta_secs: 2.0,
+    expected_axis: Vec3::NEG_Y,
+    expected_angle_rads: 2.0,
+} ; "rotation scales with delta_secs")]
+#[test_case(ApplyCurveSpinCase {
+    curve: Vec2::ZERO,
+    delta_secs: 1.0,
+    expected_axis: Vec3::ZERO,
+    expected_angle_rads: 0.0,
+} ; "zero curve produces zero rotation")]
+fn test_apply_curve_spin_adds_spin_to_transform(case: ApplyCurveSpinCase) {
+    let mut app = App::new();
+
+    let entity = app
+        .world_mut()
+        .spawn((
+            physics::components::Curve(case.curve),
+            Transform::default()
+        ))
+        .id();
+
+    app.add_systems(Update, physics::systems::apply_curve_spin);
+
+    let mut time: Time = Time::default();
+    time.advance_by(std::time::Duration::from_secs_f32(case.delta_secs));
+    app.insert_resource(time);
+
+    app.update();
+
+    let transform = app
+        .world()
+        .get::<Transform>(entity)
+        .unwrap();
+        let expected = Quat::from_axis_angle(case.expected_axis, case.expected_angle_rads);
+        let actual = transform.rotation;
+
+        assert_eq!(expected, actual);
 }
 
 struct DetectCollisionCase {

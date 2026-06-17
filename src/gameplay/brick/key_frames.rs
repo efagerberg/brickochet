@@ -45,29 +45,31 @@ pub fn sample_key_frames<V: Lerp + Copy>(
     t: f32,
 ) -> Result<V, SampleKeyFramesError> {
     if key_frames.is_empty() {
-        return Err(SampleKeyFramesError::NotStarted);
-    }
-    if t < key_frames[0].t {
-        return Err(SampleKeyFramesError::NotStarted);
-    }
-    if t >= key_frames.last().unwrap().t {
         return Err(SampleKeyFramesError::Finished);
     }
 
-    let right_idx = key_frames.iter().position(|kf| kf.t > t).unwrap();
-    let left_idx = right_idx - 1;
-    let left = &key_frames[left_idx];
-    let right = &key_frames[right_idx];
+    if t < key_frames[0].t {
+        return Err(SampleKeyFramesError::NotStarted);
+    }
+    if t > 1.0 {
+        return Err(SampleKeyFramesError::Finished);
+    }
+
+    let left: &KeyFrame<V>;
+    let right: &KeyFrame<V>;
+    if let Some(right_idx) = key_frames.iter().position(|kf| kf.t > t) {
+        let left_idx = right_idx - 1;
+        left = &key_frames[left_idx];
+        right = &key_frames[right_idx];
+    } else {
+        return Ok(key_frames.last().unwrap().value);
+    }
 
     match left.interp {
         Interpolation::Constant => Ok(left.value),
         Interpolation::Linear => {
             let span = right.t - left.t;
-            let u = if span <= 0.0 {
-                0.0
-            } else {
-                (t - left.t) / span
-            };
+            let u = (t - left.t) / span;
             Ok(V::lerp(left.value, right.value, u))
         }
     }

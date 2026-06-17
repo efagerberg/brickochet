@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::gameplay::{ball, playfield};
+use crate::gameplay::{ball, brick, playfield};
 use crate::physics;
 use crate::rendering;
 
@@ -33,6 +33,7 @@ pub fn highlight_depth_lines(
 }
 
 pub fn handle_wall_collision(
+    mut commands: Commands,
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         (
@@ -54,7 +55,14 @@ pub fn handle_wall_collision(
 
         match goal {
             playfield::components::Goal::Player => {
+                commands.entity(message.a).remove::<(
+                    brick::components::RicochetCurveEffect,
+                    brick::components::RicochetSizeEffect,
+                    brick::components::RicochetSpeedEffect,
+                )>();
                 ball_transform.translation = Vec3::default();
+                ball_transform.scale = Vec3::ONE;
+                ball_transform.rotation = Quat::IDENTITY;
                 ball_velocity.0 = ball_modifiers.base_velocity;
                 curve.0 = Vec2::ZERO;
             }

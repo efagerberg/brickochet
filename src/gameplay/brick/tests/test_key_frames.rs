@@ -13,7 +13,7 @@ struct SampleKeyFramesCase<T> {
     SampleKeyFramesCase::<f32> {
         key_frames: vec![],
         t: 0.0,
-        expected: Err(key_frames::SampleKeyFramesError::NotStarted),
+        expected: Err(key_frames::SampleKeyFramesError::Finished),
     };
     "empty key_frames"
 )]
@@ -27,6 +27,17 @@ struct SampleKeyFramesCase<T> {
         expected: Err(key_frames::SampleKeyFramesError::NotStarted),
     };
     "before first key frame"
+)]
+#[test_case(
+    SampleKeyFramesCase {
+        key_frames: vec![
+            key_frames::KeyFrame { t: 0.0, value: 0.0, interp: key_frames::Interpolation::Constant },
+            key_frames::KeyFrame { t: 1.0, value: 10.0, interp: key_frames::Interpolation::Constant },
+        ],
+        t: 0.0,
+        expected: Ok(0.0),
+    };
+    "first key frame"
 )]
 #[test_case(
     SampleKeyFramesCase {
@@ -71,6 +82,17 @@ struct SampleKeyFramesCase<T> {
         expected: Ok(Vec3::new(5.0, 5.0, 2.5)),
     };
     "between linear Vec3 key frames"
+)]
+#[test_case(
+    SampleKeyFramesCase {
+        key_frames: vec![
+            key_frames::KeyFrame { t: 0.0, value: 0.0, interp: key_frames::Interpolation::Constant },
+            key_frames::KeyFrame { t: 1.0, value: 10.0, interp: key_frames::Interpolation::Constant },
+        ],
+        t: 1.0,
+        expected: Ok(10.0),
+    };
+    "last key frame"
 )]
 #[test_case(
     SampleKeyFramesCase {
