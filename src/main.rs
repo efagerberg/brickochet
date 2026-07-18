@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::window;
 use bevy_common_assets::ron;
+use bevy_embedded_assets;
 use bevy_inspector_egui::bevy_egui;
 
 use crate::gameplay::brick;
@@ -21,10 +22,10 @@ mod test_utils;
 
 fn main() -> Result<(), BevyError> {
     let mut app = App::new();
-    // Workaround for https://github.com/bevyengine/bevy/issues/22103
-    let asset_path =
-        std::env::current_dir().map(|p| p.join("assets").to_string_lossy().into_owned())?;
-    app.add_plugins(
+    app.add_plugins((
+        bevy_embedded_assets::EmbeddedAssetPlugin {
+            mode: bevy_embedded_assets::PluginMode::ReplaceDefault,
+        },
         DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window {
@@ -34,15 +35,10 @@ fn main() -> Result<(), BevyError> {
                 }),
                 ..default()
             })
-            .set(AssetPlugin {
-                file_path: asset_path,
-                ..default()
-            }),
-    )
-    .add_plugins(bevy_egui::EguiPlugin::default())
-    .add_plugins(ron::RonAssetPlugin::<brick::assets::BrickAsset>::new(&[
-        "brick.ron",
-    ]))
+            .set(AssetPlugin::default()),
+        bevy_egui::EguiPlugin::default(),
+        ron::RonAssetPlugin::<brick::assets::BrickAsset>::new(&["brick.ron"]),
+    ))
     .add_plugins((
         audio::plugin,
         states::plugin,

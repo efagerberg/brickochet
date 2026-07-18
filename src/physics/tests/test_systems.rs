@@ -144,10 +144,7 @@ fn test_apply_curve_spin_adds_spin_to_transform(case: ApplyCurveSpinCase) {
 
     let entity = app
         .world_mut()
-        .spawn((
-            physics::components::Curve(case.curve),
-            Transform::default()
-        ))
+        .spawn((physics::components::Curve(case.curve), Transform::default()))
         .id();
 
     app.add_systems(Update, physics::systems::apply_curve_spin);
@@ -158,14 +155,11 @@ fn test_apply_curve_spin_adds_spin_to_transform(case: ApplyCurveSpinCase) {
 
     app.update();
 
-    let transform = app
-        .world()
-        .get::<Transform>(entity)
-        .unwrap();
-        let expected = Quat::from_axis_angle(case.expected_axis, case.expected_angle_rads);
-        let actual = transform.rotation;
+    let transform = app.world().get::<Transform>(entity).unwrap();
+    let expected = Quat::from_axis_angle(case.expected_axis, case.expected_angle_rads);
+    let actual = transform.rotation;
 
-        assert_eq!(expected, actual);
+    assert_eq!(expected, actual);
 }
 
 struct DetectCollisionCase {
