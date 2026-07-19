@@ -4,12 +4,23 @@ use crate::gameplay::{ball, brick, playfield};
 use crate::physics;
 
 pub fn track_ball_with_depth_line(
-    ball_query: Single<&Transform, (With<physics::components::BoundingSphere>, Without<playfield::components::DepthLine>)>,
+    ball_query: Single<
+        &Transform,
+        (
+            With<physics::components::BoundingSphere>,
+            Without<playfield::components::DepthLine>,
+        ),
+    >,
     lines: Query<&mut Transform, With<playfield::components::DepthLine>>,
+    playfield: Res<playfield::resources::Playfield>,
 ) {
     let ball_transform = ball_query.into_inner();
 
-    let tracking_z = ball_transform.translation.z;
+    let tracking_z = ball_transform
+        .translation
+        .z
+        .min(playfield.half_size.z)
+        .max(-playfield.half_size.z);
     for mut line_transform in lines {
         line_transform.translation.z = tracking_z;
     }

@@ -97,6 +97,7 @@ fn spawn_playfield(
         ball_distance_near_color: LinearRgba::new(0.25, 0.0, 0.0, 1.0),
         ball_distance_far_color: LinearRgba::new(0.0, 0.125, 0.125, 1.0),
         brick_size: Vec3::new(4.0, 2.0, 0.25),
+        half_size,
     };
     commands.insert_resource(playfield.clone());
     playfield
