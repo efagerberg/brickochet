@@ -8,7 +8,7 @@ const SENSITIVITY: f32 = 0.025;
 const PLAYFIELD_HALF: f32 = 5.0;
 const PADDLE_HALF: f32 = 1.0;
 
-fn base_app() -> App {
+fn base_app(cursor_visible: bool) -> App {
     let mut app = App::new();
     app.add_message::<bevy::input::mouse::MouseMotion>();
 
@@ -17,6 +17,10 @@ fn base_app() -> App {
         physics::components::BoundingCuboid {
             half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.5),
         },
+        bevy::window::CursorOptions {
+            visible: cursor_visible,
+            ..default()
+        },
     ));
     app
 }
@@ -24,7 +28,18 @@ fn base_app() -> App {
 struct PaddleMouseControlCase {
     starting_position: Vec3,
     motion_deltas: Vec<Vec2>,
+    cursor_visible: bool,
     expected_position: Vec3,
+}
+impl Default for PaddleMouseControlCase {
+    fn default() -> Self {
+        PaddleMouseControlCase {
+            starting_position: Vec3::ZERO,
+            motion_deltas: vec![],
+            cursor_visible: false,
+            expected_position: Vec3::ZERO,
+        }
+    }
 }
 
 #[test_case(
@@ -32,6 +47,7 @@ struct PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![],
         expected_position: Vec3::ZERO,
+        ..default()
     }
     ; "no mouse movement"
 )]
@@ -40,14 +56,25 @@ struct PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(10.0, 0.0)],
         expected_position: Vec3::new(10.0 * SENSITIVITY, 0.0, 0.0),
+        ..default()
     }
     ; "positive x movement"
 )]
 #[test_case(
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
+        motion_deltas: vec![Vec2::new(10.0, 0.0)],
+        cursor_visible: true,
+        expected_position: Vec3::ZERO
+    }
+    ; "visible cursor stops movement"
+)]
+#[test_case(
+    PaddleMouseControlCase {
+        starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(-10.0, 0.0)],
         expected_position: Vec3::new(-10.0 * SENSITIVITY, 0.0, 0.0),
+        ..default()
     }
     ; "negative x movement"
 )]
@@ -56,6 +83,7 @@ struct PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(0.0, 10.0)],
         expected_position: Vec3::new(0.0, -10.0 * SENSITIVITY, 0.0),
+        ..default()
     }
     ; "positive y inverted"
 )]
@@ -68,11 +96,12 @@ struct PaddleMouseControlCase {
             -(PLAYFIELD_HALF - PADDLE_HALF),
             0.0,
         ),
+        ..default()
     }
     ; "clamps both axes"
 )]
 fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
-    let mut app = base_app();
+    let mut app = base_app(case.cursor_visible);
     app.add_systems(Update, paddle::systems::paddle_mouse_control);
 
     let paddle_entity = app

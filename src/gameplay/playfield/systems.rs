@@ -6,7 +6,7 @@ use crate::rendering;
 
 pub fn highlight_depth_lines(
     ball_query: Single<(&Transform, &physics::components::BoundingSphere)>,
-    lines: Query<(Entity, &Transform), With<playfield::components::DepthLines>>,
+    lines: Query<(Entity, &Transform), With<playfield::components::DepthLine>>,
     playfield: Res<playfield::resources::Playfield>,
     mut messages: MessageWriter<rendering::messages::MaterialColorsChangedMessage>,
 ) {

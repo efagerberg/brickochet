@@ -69,7 +69,7 @@ fn run_highlight_depth_lines(app: &mut App, ball_z: f32, lines_z: f32) -> Entity
     let lines_entity = app
         .world_mut()
         .spawn((
-            playfield::components::DepthLines,
+            playfield::components::DepthLine,
             Transform::from_translation(Vec3::Z * lines_z),
         ))
         .id();

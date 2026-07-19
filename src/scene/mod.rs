@@ -66,8 +66,8 @@ fn spawn_playfield(
         children.push(
             commands
                 .spawn((
-                    gameplay::playfield::components::DepthLines,
-                    Name::new(format!("Depth Line {}", i)),
+                    gameplay::playfield::components::DepthLine,
+                    Name::new(format!("Depth Line {}", i + 1)),
                     Mesh3d(mesh),
                     MeshMaterial3d(line_material.clone()),
                     Transform::from_xyz(0.0, 0.0, z),
