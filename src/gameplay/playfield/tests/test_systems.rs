@@ -14,8 +14,6 @@ struct HighlightDepthLinesCase {
 }
 
 const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Playfield {
-    wall_line_default_color: LinearRgba::new(0.0, 0.0, 0.0, 1.0),
-    wall_line_highlight_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
     ball_distance_far_color: LinearRgba::new(0.0, 0.0, 0.0, 1.0),
     ball_distance_near_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
     brick_size: Vec3::new(1.0, 1.0, 1.0),

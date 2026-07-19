@@ -46,35 +46,30 @@ fn spawn_playfield(
     let wall_material = materials.add(Color::srgb(0.0, 0.0, 0.0));
     let clear_wall_material = materials.add(Color::srgba(0.0, 0.0, 0.0, 0.0));
 
-    let num_lines = 10;
     let line_thickness = 0.25;
-    let line_spacing = (half_size.z * 2.0) / (num_lines as f32);
 
     let mut children = vec![];
 
-    let line_default_color = LinearRgba::rgb(0.0, 0.15, 0.0);
     let line_highlight_color = LinearRgba::rgb(0.0, 0.4, 0.2);
 
-    for i in 0..num_lines {
-        let z = -half_size.z + i as f32 * line_spacing;
-        let line_material = materials.add(StandardMaterial {
-            emissive: line_default_color,
-            ..default()
-        });
-        let mesh = meshes.add(build_depth_lines_mesh(half_size, line_thickness));
+    let line_material = materials.add(StandardMaterial {
+        emissive: line_highlight_color,
+        depth_bias: 1.0,
+        ..default()
+    });
+    let mesh = meshes.add(build_depth_lines_mesh(half_size, line_thickness));
 
-        children.push(
-            commands
-                .spawn((
-                    gameplay::playfield::components::DepthLine,
-                    Name::new(format!("Depth Line {}", i + 1)),
-                    Mesh3d(mesh),
-                    MeshMaterial3d(line_material.clone()),
-                    Transform::from_xyz(0.0, 0.0, z),
-                ))
-                .id(),
-        );
-    }
+    children.push(
+        commands
+            .spawn((
+                gameplay::playfield::components::DepthLine,
+                Name::new(format!("Depth Line")),
+                Mesh3d(mesh),
+                MeshMaterial3d(line_material.clone()),
+                Transform::from_xyz(0.0, 0.0, half_size.z),
+            ))
+            .id(),
+    );
 
     spawn_playfield_walls(
         commands,
@@ -99,8 +94,6 @@ fn spawn_playfield(
     }
 
     let playfield = gameplay::playfield::resources::Playfield {
-        wall_line_default_color: line_default_color,
-        wall_line_highlight_color: line_highlight_color,
         ball_distance_near_color: LinearRgba::new(0.25, 0.0, 0.0, 1.0),
         ball_distance_far_color: LinearRgba::new(0.0, 0.125, 0.125, 1.0),
         brick_size: Vec3::new(4.0, 2.0, 0.25),
@@ -166,7 +159,7 @@ fn build_depth_lines_mesh(half_size: Vec3, line_thickness: f32) -> Mesh {
 
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_indices(mesh::Indices::U32(indices));
-
+    mesh.compute_normals();
     mesh
 }
 

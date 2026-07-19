@@ -2,33 +2,16 @@ use bevy::prelude::*;
 
 use crate::gameplay::{ball, brick, playfield};
 use crate::physics;
-use crate::rendering;
 
-pub fn highlight_depth_lines(
-    ball_query: Single<(&Transform, &physics::components::BoundingSphere)>,
-    lines: Query<(Entity, &Transform), With<playfield::components::DepthLine>>,
-    playfield: Res<playfield::resources::Playfield>,
-    mut messages: MessageWriter<rendering::messages::MaterialColorsChangedMessage>,
+pub fn track_ball_with_depth_line(
+    ball_query: Single<&Transform, (With<physics::components::BoundingSphere>, Without<playfield::components::DepthLine>)>,
+    lines: Query<&mut Transform, With<playfield::components::DepthLine>>,
 ) {
-    let (ball_transform, sphere) = ball_query.into_inner();
+    let ball_transform = ball_query.into_inner();
 
-    let ball_z = ball_transform.translation.z;
-    // 2 ball diameters distance away, increase for smoothing animation, decrease
-    // to make animation more choppy
-    let max_distance = 2.0 * sphere.radius * 2.0;
-    let base_color = &playfield.wall_line_default_color;
-    let highlight_color = &playfield.wall_line_highlight_color;
-
-    for (entity, line_transform) in lines {
-        let distance = (line_transform.translation.z - ball_z).abs();
-        let t = (max_distance - distance).clamp(0.0, 1.0); // 0 if far, 1 if very closet);
-        let new_color = LinearRgba::mix(base_color, highlight_color, t);
-
-        messages.write(rendering::messages::MaterialColorsChangedMessage {
-            entity,
-            emissive: Some(new_color),
-            base_color: None,
-        });
+    let tracking_z = ball_transform.translation.z;
+    for mut line_transform in lines {
+        line_transform.translation.z = tracking_z;
     }
 }
 
