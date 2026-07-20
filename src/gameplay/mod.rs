@@ -34,7 +34,7 @@ pub fn plugin(app: &mut App) {
             .run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
-        Update,
+        PostUpdate,
         player::systems::restart_on_player_death.run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(

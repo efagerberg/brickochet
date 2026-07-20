@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::window;
 use bevy_common_assets::ron;
 use bevy_embedded_assets;
+use bevy_framepace;
 use bevy_inspector_egui::bevy_egui;
 
 use crate::gameplay::brick;
@@ -30,7 +31,7 @@ fn main() -> Result<(), BevyError> {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     // https://github.com/bevyengine/bevy/issues/3317
-                    present_mode: window::PresentMode::Immediate, // 🚫 VSync OFF
+                    present_mode: window::PresentMode::Mailbox, // 🚫 VSync OFF
                     ..default()
                 }),
                 ..default()
@@ -38,6 +39,7 @@ fn main() -> Result<(), BevyError> {
             .set(AssetPlugin::default()),
         bevy_egui::EguiPlugin::default(),
         ron::RonAssetPlugin::<brick::assets::BrickAsset>::new(&["brick.ron"]),
+        bevy_framepace::FramepacePlugin,
     ))
     .add_plugins((
         audio::plugin,
