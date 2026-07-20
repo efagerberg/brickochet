@@ -299,22 +299,21 @@ fn spawn_paddle(
     let bounds = physics::components::BoundingCuboid {
         half_extents: Vec3::new(1.5, 1.0, 0.1),
     };
-    let cuboid_dimensions = bounds.half_extents * 2.0;
     let healthy_color = LinearRgba::new(0.0, 0.0, 0.0, 0.85);
     let critical_color = LinearRgba::new(0.05, 0.0, 0.0, 0.85);
     commands
         .spawn((
             gameplay::paddle::components::Paddle,
             Name::new("Player Paddle"),
-            bounds,
+            bounds.clone(),
             gameplay::paddle::components::PaddleMotionRecord::default(),
             gameplay::paddle::components::PaddleImpactModifiers::starting(),
             Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 2.0),
             GlobalTransform::default(),
-            Mesh3d(meshes.add(Cuboid::new(
-                cuboid_dimensions.x,
-                cuboid_dimensions.y,
-                cuboid_dimensions.z,
+            Mesh3d(meshes.add(Plane3d::new(
+                // Point towards camera view so player can see it
+                Vec3::new(0.0, 0.0, 1.0),
+                bounds.half_extents.truncate(),
             ))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::from(healthy_color),
