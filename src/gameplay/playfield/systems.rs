@@ -12,15 +12,10 @@ pub fn track_ball_with_depth_line(
         ),
     >,
     lines: Query<&mut Transform, With<playfield::components::DepthLine>>,
-    playfield: Res<playfield::resources::Playfield>,
 ) {
     let ball_transform = ball_query.into_inner();
 
-    let tracking_z = ball_transform
-        .translation
-        .z
-        .min(playfield.half_size.z)
-        .max(-playfield.half_size.z);
+    let tracking_z = ball_transform.translation.z;
     for mut line_transform in lines {
         line_transform.translation.z = tracking_z;
     }
