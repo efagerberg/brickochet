@@ -97,7 +97,9 @@ fn create_death_app() -> App {
 
 struct UpdateHealthColorCase {
     health: components::Health,
-    expected_color: Option<Color>,
+    color_type: components::HealthColorType,
+    expected_base_color: Option<Color>,
+    expected_emissive: Option<LinearRgba>,
 }
 
 #[test_case(
@@ -106,8 +108,10 @@ struct UpdateHealthColorCase {
             current: 10,
             max: 10,
         },
-        expected_color: Some(Color::linear_rgb(0.0, 1.0, 0.0))
-    }; "green when health is still full"
+        color_type: components::HealthColorType::BaseColor,
+        expected_base_color: Some(Color::linear_rgb(0.0, 1.0, 0.0)),
+        expected_emissive: None
+    }; "base_color green when health is still full"
 )]
 #[test_case(
     UpdateHealthColorCase {
@@ -115,8 +119,10 @@ struct UpdateHealthColorCase {
             current: 1,
             max: 3,
         },
-        expected_color: Some(Color::linear_rgb(1.0, 0.0, 0.0))
-    }; "red when 1 hp left"
+        color_type: components::HealthColorType::BaseColor,
+        expected_base_color: Some(Color::linear_rgb(1.0, 0.0, 0.0)),
+        expected_emissive: None
+    }; "base_color red when 1 hp left"
 )]
 #[test_case(
     UpdateHealthColorCase {
@@ -124,7 +130,9 @@ struct UpdateHealthColorCase {
             current: 0,
             max: 3,
         },
-        expected_color: None
+        color_type: components::HealthColorType::BaseColor,
+        expected_base_color: None,
+        expected_emissive: None
     }; "no message when 0 hp"
 )]
 fn test_update_health_color(case: UpdateHealthColorCase) {
@@ -139,7 +147,7 @@ fn test_update_health_color(case: UpdateHealthColorCase) {
             components::HealthColors {
                 max: LinearRgba::rgb(0.0, 1.0, 0.0),
                 min: LinearRgba::rgb(1.0, 0.0, 0.0),
-                color_type: components::HealthColorType::BaseColor,
+                color_type: case.color_type,
             },
         ))
         .id();
@@ -150,13 +158,13 @@ fn test_update_health_color(case: UpdateHealthColorCase) {
     app.update();
 
     let mut expected: Vec<rendering::messages::MaterialColorsChangedMessage> = vec![];
-    if case.expected_color.is_some() {
+    if case.expected_base_color.is_some() || case.expected_emissive.is_some() {
         expected.push(rendering::messages::MaterialColorsChangedMessage {
             entity,
-            base_color: case.expected_color,
-            emissive: None,
-        })
-    };
+            base_color: case.expected_base_color,
+            emissive: case.expected_emissive,
+        });
+    }
     test_utils::assertions::assert_messages(&app, &expected);
 }
 
