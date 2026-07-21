@@ -243,8 +243,8 @@ fn spawn_paddle(
     let bounds = physics::components::BoundingCuboid {
         half_extents: paddle_half_size,
     };
-    let healthy_color = LinearRgba::new(0.0, 0.0, 0.0, 0.85);
-    let critical_color = LinearRgba::new(0.05, 0.0, 0.0, 0.85);
+    let healthy_color = LinearRgba::rgb(0.0, 0.2, 0.1);
+    let critical_color = LinearRgba::rgb(0.5, 0.2, 0.1);
     let reticle_line_thickness = 0.05;
     let reticle_mesh = mesh_generation::combine_meshes([
         (
@@ -264,7 +264,6 @@ fn spawn_paddle(
             Mat4::IDENTITY,
         ),
     ]);
-    let line_highlight_color = LinearRgba::rgb(0.0, 0.2, 0.1);
     commands
         .spawn((
             gameplay::paddle::components::Paddle,
@@ -274,27 +273,28 @@ fn spawn_paddle(
             gameplay::paddle::components::PaddleImpactModifiers::starting(),
             Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 2.0),
             GlobalTransform::default(),
-            Mesh3d(meshes.add(Plane3d::new(
-                // Point towards camera view so player can see it
-                Vec3::new(0.0, 0.0, 1.0),
-                bounds.half_extents.truncate(),
-            ))),
+            Mesh3d(meshes.add(reticle_mesh)),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::from(healthy_color),
-                alpha_mode: AlphaMode::Blend,
+                emissive: healthy_color,
                 ..default()
             })),
-            gameplay::player::components::Player {},
-            health::components::Health { max: 3, current: 3 },
             health::components::HealthColors {
                 max: healthy_color,
                 min: critical_color,
+                color_type: health::components::HealthColorType::Emissive,
             },
+            gameplay::player::components::Player {},
+            health::components::Health { max: 3, current: 3 },
             DespawnOnExit(states::GameState::Gameplay),
             children![(
-                Mesh3d(meshes.add(reticle_mesh)),
+                Mesh3d(meshes.add(Plane3d::new(
+                    // Point towards camera view so player can see it
+                    Vec3::new(0.0, 0.0, 1.0),
+                    bounds.half_extents.truncate(),
+                ))),
                 MeshMaterial3d(materials.add(StandardMaterial {
-                    emissive: line_highlight_color,
+                    base_color: Color::from(LinearRgba::new(0.0, 0.0, 0.0, 0.85)),
+                    alpha_mode: AlphaMode::Blend,
                     ..default()
                 })),
             )],

@@ -139,6 +139,7 @@ fn test_update_health_color(case: UpdateHealthColorCase) {
             components::HealthColors {
                 max: LinearRgba::rgb(0.0, 1.0, 0.0),
                 min: LinearRgba::rgb(1.0, 0.0, 0.0),
+                color_type: components::HealthColorType::BaseColor,
             },
         ))
         .id();

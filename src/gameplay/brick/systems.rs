@@ -148,6 +148,7 @@ fn spawn_brick(
             health::components::HealthColors {
                 max: healthy_color,
                 min: critical_color,
+                color_type: health::components::HealthColorType::BaseColor,
             },
             health::components::ChangeOnCollision {
                 delta: -1,

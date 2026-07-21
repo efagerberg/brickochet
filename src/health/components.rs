@@ -6,10 +6,18 @@ pub struct Health {
     pub current: u8,
 }
 
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+pub enum HealthColorType {
+    #[default]
+    BaseColor,
+    Emissive,
+}
+
 #[derive(Component)]
 pub struct HealthColors {
     pub max: LinearRgba,
     pub min: LinearRgba,
+    pub color_type: HealthColorType,
 }
 
 #[derive(Clone)]
