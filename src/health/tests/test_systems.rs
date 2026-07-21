@@ -127,6 +127,17 @@ struct UpdateHealthColorCase {
 #[test_case(
     UpdateHealthColorCase {
         health: components::Health {
+            current: 1,
+            max: 3,
+        },
+        color_type: components::HealthColorType::Emissive,
+        expected_base_color: None,
+        expected_emissive: Some(LinearRgba::rgb(1.0, 0.0, 0.0))
+    }; "emissive_color red when 1 hp left"
+)]
+#[test_case(
+    UpdateHealthColorCase {
+        health: components::Health {
             current: 0,
             max: 3,
         },
