@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use bevy::window;
 use bevy_common_assets::ron;
-use bevy_embedded_assets;
-use bevy_framepace;
 use bevy_inspector_egui::bevy_egui;
 
 use crate::gameplay::brick;

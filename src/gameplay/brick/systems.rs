@@ -177,19 +177,18 @@ fn spawn_brick(
     commands.entity(main).add_child(border);
 }
 
+type PaddleQueryFilter = (
+    With<paddle::components::Paddle>,
+    With<player::components::Player>,
+);
+
 pub fn initialize_ricochet_effect(
     mut ball_query: Query<
         (&Transform, &physics::components::BoundingSphere),
         Without<brick::components::Brick>,
     >,
     brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
-    paddle_query: Query<
-        (&Transform, &physics::components::BoundingCuboid),
-        (
-            With<paddle::components::Paddle>,
-            With<player::components::Player>,
-        ),
-    >,
+    paddle_query: Query<(&Transform, &physics::components::BoundingCuboid), PaddleQueryFilter>,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut commands: Commands,
     time: Res<Time>,
