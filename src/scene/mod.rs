@@ -1,6 +1,8 @@
-use bevy::{asset, core_pipeline, mesh, post_process, prelude::*};
+use bevy::{core_pipeline, post_process, prelude::*};
 
 use crate::{audio, gameplay, health, physics, states};
+
+pub mod mesh_generation;
 
 pub fn plugin(app: &mut App) {
     app.add_systems(
@@ -54,10 +56,12 @@ fn spawn_playfield(
 
     let line_material = materials.add(StandardMaterial {
         emissive: line_highlight_color,
-        depth_bias: 1.0,
         ..default()
     });
-    let mesh = meshes.add(build_depth_lines_mesh(half_size, line_thickness));
+    let mesh = meshes.add(mesh_generation::generate_outline(
+        half_size.truncate(),
+        line_thickness,
+    ));
 
     children.push(
         commands
@@ -101,67 +105,6 @@ fn spawn_playfield(
     };
     commands.insert_resource(playfield.clone());
     playfield
-}
-
-fn build_depth_lines_mesh(half_size: Vec3, line_thickness: f32) -> Mesh {
-    let mut mesh = Mesh::new(
-        mesh::PrimitiveTopology::TriangleList,
-        asset::RenderAssetUsages::MAIN_WORLD | asset::RenderAssetUsages::RENDER_WORLD,
-    );
-
-    let mut positions: Vec<[f32; 3]> = Vec::new();
-    let mut indices: Vec<u32> = Vec::new();
-    let mut index_offset = 0u32;
-
-    let mut add_cuboid = |size: Vec3, transform: Mat4| {
-        let cuboid = Cuboid::new(size.x, size.y, size.z);
-        let temp_mesh = Mesh::from(cuboid);
-
-        let vertices = temp_mesh
-            .attribute(Mesh::ATTRIBUTE_POSITION)
-            .and_then(|attr| attr.as_float3())
-            .expect("Cuboid mesh must have Position as Float32x3");
-
-        for v in vertices {
-            let v = transform.transform_point3((*v).into());
-            positions.push(v.into());
-        }
-
-        if let Some(mesh::Indices::U32(src)) = temp_mesh.indices() {
-            indices.extend(src.iter().map(|i| i + index_offset));
-            index_offset += vertices.len() as u32;
-        }
-    };
-
-    for (length, offset_axis, rotation) in [
-        // Lines running along X (floor & ceiling)
-        (half_size.x * 2.0, Vec3::Y, Mat4::IDENTITY),
-        // Lines running along Y (left & right walls)
-        (
-            half_size.y * 2.0,
-            Vec3::X,
-            Mat4::from_rotation_z(std::f32::consts::FRAC_PI_2),
-        ),
-    ] {
-        // Two sides per orientation
-        for side in [-1.0, 1.0] {
-            let offset = match offset_axis {
-                Vec3::Y => Vec3::Y * side * half_size.y,
-                Vec3::X => Vec3::X * side * half_size.x,
-                _ => Vec3::ZERO,
-            };
-
-            add_cuboid(
-                Vec3::new(length, line_thickness, line_thickness),
-                Mat4::from_translation(offset) * rotation,
-            );
-        }
-    }
-
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    mesh.insert_indices(mesh::Indices::U32(indices));
-    mesh.compute_normals();
-    mesh
 }
 
 fn spawn_playfield_walls(
@@ -296,11 +239,32 @@ fn spawn_paddle(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     playfield_half_size: Vec3,
 ) -> Entity {
+    let paddle_half_size = Vec3::new(1.5, 1.0, 0.1);
     let bounds = physics::components::BoundingCuboid {
-        half_extents: Vec3::new(1.5, 1.0, 0.1),
+        half_extents: paddle_half_size,
     };
     let healthy_color = LinearRgba::new(0.0, 0.0, 0.0, 0.85);
     let critical_color = LinearRgba::new(0.05, 0.0, 0.0, 0.85);
+    let reticle_line_thickness = 0.05;
+    let reticle_mesh = mesh_generation::combine_meshes([
+        (
+            mesh_generation::generate_outline(paddle_half_size.truncate(), reticle_line_thickness),
+            Mat4::IDENTITY,
+        ),
+        (
+            mesh_generation::generate_cross(
+                paddle_half_size.truncate(),
+                reticle_line_thickness,
+                0.5,
+            ),
+            Mat4::IDENTITY,
+        ),
+        (
+            mesh_generation::generate_outline(Vec2::new(0.25, 0.25), reticle_line_thickness),
+            Mat4::IDENTITY,
+        ),
+    ]);
+    let line_highlight_color = LinearRgba::rgb(0.0, 0.2, 0.1);
     commands
         .spawn((
             gameplay::paddle::components::Paddle,
@@ -327,6 +291,13 @@ fn spawn_paddle(
                 min: critical_color,
             },
             DespawnOnExit(states::GameState::Gameplay),
+            children![(
+                Mesh3d(meshes.add(reticle_mesh)),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    emissive: line_highlight_color,
+                    ..default()
+                })),
+            )],
         ))
         .id()
 }
