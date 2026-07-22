@@ -24,8 +24,12 @@ pub fn plugin(app: &mut App) {
         )
         .add_systems(
             PostUpdate,
-            (systems::update_health_color, systems::handle_death)
+            systems::update_health_color
                 .before(crate::rendering::RenderingSet::Integrate)
                 .run_if(in_state(states::GameState::Gameplay)),
+        )
+        .add_systems(
+            PostUpdate,
+            systems::handle_death.run_if(in_state(states::GameState::Gameplay)),
         );
 }

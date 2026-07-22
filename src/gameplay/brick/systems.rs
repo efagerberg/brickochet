@@ -148,6 +148,7 @@ fn spawn_brick(
             health::components::HealthColors {
                 max: healthy_color,
                 min: critical_color,
+                color_type: health::components::HealthColorType::BaseColor,
             },
             health::components::ChangeOnCollision {
                 delta: -1,
@@ -176,27 +177,29 @@ fn spawn_brick(
     commands.entity(main).add_child(border);
 }
 
+type PaddleQueryFilter = (
+    With<paddle::components::Paddle>,
+    With<player::components::Player>,
+);
+
 pub fn initialize_ricochet_effect(
-    mut non_brick_query: Query<&Transform, Without<brick::components::Brick>>,
-    brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
-    paddle_query: Query<
-        &Transform,
-        (
-            With<paddle::components::Paddle>,
-            With<player::components::Player>,
-        ),
+    mut ball_query: Query<
+        (&Transform, &physics::components::BoundingSphere),
+        Without<brick::components::Brick>,
     >,
+    brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
+    paddle_query: Query<(&Transform, &physics::components::BoundingCuboid), PaddleQueryFilter>,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut commands: Commands,
     time: Res<Time>,
 ) {
     for message in collision_messages.read() {
-        let non_brick_result = non_brick_query.get_mut(message.a);
+        let ball_result = ball_query.get_mut(message.a);
         let brick_result = brick_query.get(message.b);
         let combined =
-            non_brick_result.and_then(|non_brick| brick_result.map(|brick| (non_brick, brick)));
+            ball_result.and_then(|non_brick| brick_result.map(|brick| (non_brick, brick)));
 
-        if let Ok((non_brick_transform, ricochet_effect)) = combined {
+        if let Ok(((ball_transform, bounding_sphere), ricochet_effect)) = combined {
             let (start, end) = match ricochet_effect.definition.driver {
                 brick::assets::EffectDriver::Time { duration_seconds } => {
                     let start = time.elapsed_secs();
@@ -204,12 +207,18 @@ pub fn initialize_ricochet_effect(
                     (start, end)
                 }
                 brick::assets::EffectDriver::DistanceToPlayer => {
-                    let start = non_brick_transform.translation.z;
-                    let paddle_transform = paddle_query
+                    let start = ball_transform.translation.z;
+                    let (paddle_transform, bounding_cuboid) = paddle_query
                         .iter()
                         .next()
                         .expect("No player, cannot use DistanceToPlayer driver");
-                    let end = paddle_transform.translation.z;
+                    let ball_radius = bounding_sphere.radius;
+                    let contact_offset = bounding_cuboid.half_extents.z + ball_radius;
+                    // ball travels from start toward the paddle's center; it will
+                    // actually stop at the paddle's surface, short by contact_offset
+                    let raw_end = paddle_transform.translation.z;
+                    let direction = (raw_end - start).signum();
+                    let end = raw_end - direction * contact_offset;
                     (start, end)
                 }
             };
@@ -250,6 +259,49 @@ pub fn initialize_ricochet_effect(
     }
 }
 
+fn driver_current_value(
+    driver: &brick::assets::EffectDriver,
+    transform: &Transform,
+    time: &Time,
+) -> f32 {
+    match driver {
+        brick::assets::EffectDriver::Time { .. } => time.elapsed_secs(),
+        brick::assets::EffectDriver::DistanceToPlayer => transform.translation.z,
+    }
+}
+
+/// Samples a ricochet effect's current value, handling lifecycle (removal on
+/// completion or missing keyframes) via `commands`. Returns `None` when there's
+/// nothing to apply this frame (not started yet, or just removed).
+fn sample_ricochet_effect<T, V>(
+    commands: &mut Commands,
+    entity: Entity,
+    transform: &Transform,
+    time: &Time,
+    effect: &brick::components::RicochetEffect<V>,
+) -> Option<V>
+where
+    T: Component,
+    V: key_frames::Lerp + Copy,
+{
+    let current = driver_current_value(&effect.driver, transform, time);
+    let t = (current - effect.start) / (effect.end - effect.start);
+
+    match key_frames::sample_key_frames::<V>(&effect.key_frames, t) {
+        Err(key_frames::SampleKeyFramesError::NotStarted) => None,
+        Err(key_frames::SampleKeyFramesError::NoKeyFrames) => {
+            warn!("No keyframes given, skipping and removing effect");
+            commands.entity(entity).remove::<T>();
+            None
+        }
+        Ok(key_frames::SampleKeyFrameValue::InProgress(v)) => Some(v),
+        Ok(key_frames::SampleKeyFrameValue::Complete(v)) => {
+            commands.entity(entity).remove::<T>();
+            Some(v)
+        }
+    }
+}
+
 pub fn update_speed_effect(
     query: Query<(
         Entity,
@@ -261,31 +313,19 @@ pub fn update_speed_effect(
     time: Res<Time>,
 ) {
     for (entity, transform, mut velocity, effect) in query {
-        let current = match effect.0.driver {
-            crate::gameplay::brick::assets::EffectDriver::Time {
-                duration_seconds: _,
-            } => time.elapsed_secs(),
-            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => {
-                transform.translation.z
-            }
-        };
-        let t = (current - effect.0.start) / (effect.0.end - effect.0.start);
-        let sampled = match key_frames::sample_key_frames::<f32>(&effect.0.key_frames, t) {
-            Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
-            Ok(v) => v,
-            Err(key_frames::SampleKeyFramesError::Finished) => {
-                commands
-                    .entity(entity)
-                    .remove::<brick::components::RicochetSpeedEffect>();
-                continue;
-            }
+        let Some(sampled) = sample_ricochet_effect::<brick::components::RicochetSpeedEffect, f32>(
+            &mut commands,
+            entity,
+            transform,
+            &time,
+            &effect.0,
+        ) else {
+            continue;
         };
 
-        // preserve direction, adjust magnitude
         if velocity.0.length_squared() > 0.0 {
             velocity.0 = velocity.0.normalize() * sampled;
         } else {
-            // if zero velocity, set in z direction (or skip) — adjust behavior as desired
             velocity.0 = Vec3::new(0.0, 0.0, sampled);
         }
     }
@@ -302,26 +342,15 @@ pub fn update_curve_effect(
     time: Res<Time>,
 ) {
     for (entity, transform, mut curve, effect) in query {
-        let current = match effect.0.driver {
-            crate::gameplay::brick::assets::EffectDriver::Time {
-                duration_seconds: _,
-            } => time.elapsed_secs(),
-            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => {
-                transform.translation.z
-            }
+        let Some(sampled) = sample_ricochet_effect::<brick::components::RicochetCurveEffect, Vec2>(
+            &mut commands,
+            entity,
+            transform,
+            &time,
+            &effect.0,
+        ) else {
+            continue;
         };
-        let t = (current - effect.0.start) / (effect.0.end - effect.0.start);
-        let sampled =
-            match key_frames::sample_key_frames::<bevy::prelude::Vec2>(&effect.0.key_frames, t) {
-                Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
-                Ok(v) => v,
-                Err(key_frames::SampleKeyFramesError::Finished) => {
-                    commands
-                        .entity(entity)
-                        .remove::<brick::components::RicochetCurveEffect>();
-                    continue;
-                }
-            };
 
         curve.0 = sampled;
     }
@@ -338,25 +367,14 @@ pub fn update_size_effect(
     time: Res<Time>,
 ) {
     for (entity, mut transform, mut bounding_sphere, effect) in query {
-        let current = match effect.0.driver {
-            crate::gameplay::brick::assets::EffectDriver::Time {
-                duration_seconds: _,
-            } => time.elapsed_secs(),
-            crate::gameplay::brick::assets::EffectDriver::DistanceToPlayer => {
-                transform.translation.z
-            }
-        };
-        let t = (current - effect.0.start) / (effect.0.end - effect.0.start);
-
-        let sampled = match key_frames::sample_key_frames(&effect.0.key_frames, t) {
-            Err(key_frames::SampleKeyFramesError::NotStarted) => continue,
-            Ok(v) => v,
-            Err(key_frames::SampleKeyFramesError::Finished) => {
-                commands
-                    .entity(entity)
-                    .remove::<brick::components::RicochetSizeEffect>();
-                continue;
-            }
+        let Some(sampled) = sample_ricochet_effect::<brick::components::RicochetSizeEffect, f32>(
+            &mut commands,
+            entity,
+            &transform,
+            &time,
+            &effect.0,
+        ) else {
+            continue;
         };
 
         transform.scale = Vec3::ONE * sampled;

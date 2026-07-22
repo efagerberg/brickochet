@@ -30,8 +30,9 @@ pub fn plugin(app: &mut App) {
         .add_systems(
             FixedUpdate,
             (
-                systems::apply_curve.in_set(PhysicsSet::ComputeForces),
-                systems::apply_velocity.in_set(PhysicsSet::ApplyForces),
+                systems::add_curve_velocity.in_set(PhysicsSet::ComputeForces),
+                (systems::apply_velocity, systems::apply_curve_spin)
+                    .in_set(PhysicsSet::ApplyForces),
                 systems::detect_collisions.in_set(PhysicsSet::DetectCollisions),
                 systems::resolve_sphere_aabb_collision.in_set(PhysicsSet::ResolveCollisions),
             ),

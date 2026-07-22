@@ -48,11 +48,17 @@ pub fn update_health_color(
             }
             let t = ((health.current as f32 - 1.0) / (health.max as f32 - 1.0)).clamp(0.0, 1.0);
             let new_color = Color::from(health_colors.min.mix(&health_colors.max, t));
+            let (base_color, emissive) =
+                if health_colors.color_type == health::components::HealthColorType::BaseColor {
+                    (Some(new_color), None)
+                } else {
+                    (None, Some(new_color.to_linear()))
+                };
             material_colors_changed_messages.write(
                 rendering::messages::MaterialColorsChangedMessage {
                     entity,
-                    base_color: Some(new_color),
-                    emissive: None,
+                    base_color,
+                    emissive,
                 },
             );
         }

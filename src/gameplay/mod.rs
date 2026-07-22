@@ -34,7 +34,7 @@ pub fn plugin(app: &mut App) {
             .run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
-        Update,
+        PostUpdate,
         player::systems::restart_on_player_death.run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
@@ -61,7 +61,10 @@ pub fn plugin(app: &mut App) {
     )
     .add_systems(
         PostUpdate,
-        (playfield::systems::highlight_depth_lines,)
+        (
+            playfield::systems::track_ball_with_depth_line,
+            ball::systems::ball_to_paddle_distance_glow,
+        )
             .before(crate::rendering::RenderingSet::Integrate)
             .run_if(in_state(states::GameState::Gameplay)),
     );

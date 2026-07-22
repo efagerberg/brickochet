@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct DepthLines;
+pub struct DepthLine;
 
 #[derive(Component, PartialEq, Eq, Copy, Clone)]
 pub enum Goal {

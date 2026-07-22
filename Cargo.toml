@@ -9,9 +9,12 @@ bevy-inspector-egui = "0.35.0"
 rand = "0.9.3"
 serde = "1.0.228"
 bevy_common_assets = { version = "0.14.0", features = ["ron"] }
+bevy_embedded_assets = "0.14"
+bevy_framepace = "0.20"
 
 [dev-dependencies]
 test-case = "3.3.1"
+assert_float_eq = "1.2.0"
 
 # No optimization so we can use debugger
 [profile.dev]

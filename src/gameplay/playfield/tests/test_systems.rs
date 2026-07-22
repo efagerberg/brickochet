@@ -4,80 +4,61 @@ use test_case::test_case;
 use crate::gameplay::{ball, playfield};
 use crate::physics;
 use crate::rendering;
-use crate::test_utils;
 
 #[derive(Debug)]
-struct HighlightDepthLinesCase {
+struct TrackBallWithDepthLineCase {
     ball_z: f32,
-    lines_z: f32,
-    expected_mix: f32,
 }
 
-const PLAYFIELD_RES: playfield::resources::Playfield = playfield::resources::Playfield {
-    wall_line_default_color: LinearRgba::new(0.0, 0.0, 0.0, 1.0),
-    wall_line_highlight_color: LinearRgba::new(1.0, 0.0, 0.0, 1.0),
-    brick_size: Vec3::new(1.0, 1.0, 1.0),
-};
-
 #[test_case(
-    HighlightDepthLinesCase {
+    TrackBallWithDepthLineCase {
         ball_z: 0.001,
-        lines_z: 0.0,
-        expected_mix: 1.0,
     };
-    "emissive increases as ball move towards depth line"
+    "Follows ball moving in"
 )]
 #[test_case(
-    HighlightDepthLinesCase {
-        ball_z: -200.0,
-        lines_z: 0.0,
-        expected_mix: 0.0,
+    TrackBallWithDepthLineCase {
+        ball_z: -0.001,
     };
-    "emissive decreases as ball moves away from depth line"
+    "Follows ball moving out"
 )]
-fn test_highlight_depth_lines_emits_color_change(case: HighlightDepthLinesCase) {
+fn test_track_ball_with_depth_line_tracks_ball_as_expected(case: TrackBallWithDepthLineCase) {
     let mut app = App::new();
-    let entity = run_highlight_depth_lines(&mut app, case.ball_z, case.lines_z);
-    let expected_color = LinearRgba::mix(
-        &PLAYFIELD_RES.wall_line_default_color,
-        &PLAYFIELD_RES.wall_line_highlight_color,
-        case.expected_mix,
-    );
-    let expected_messages = vec![rendering::messages::MaterialColorsChangedMessage {
-        entity,
-        base_color: None,
-        emissive: Some(expected_color),
-    }];
+    let (ball_entity, line_entity) = run_tracking(&mut app, case.ball_z);
 
-    test_utils::assertions::assert_messages(&app, &expected_messages);
+    let ball_transform = app.world().get::<Transform>(ball_entity).unwrap();
+    let line_transform = app.world().get::<Transform>(line_entity).unwrap();
+
+    assert_eq!(ball_transform.translation.z, line_transform.translation.z);
 }
 
-fn run_highlight_depth_lines(app: &mut App, ball_z: f32, lines_z: f32) -> Entity {
-    app.insert_resource(PLAYFIELD_RES);
-
+fn run_tracking(app: &mut App, ball_z: f32) -> (Entity, Entity) {
     let ball_modifiers = ball::components::BallModifiers::starting();
-    app.world_mut().spawn((
-        ball_modifiers.clone(),
-        Transform::from_translation(Vec3::Z * ball_z),
-        physics::components::BoundingSphere {
-            radius: ball_modifiers.base_radius,
-        },
-    ));
-
-    let lines_entity = app
+    let ball_entity = app
         .world_mut()
         .spawn((
-            playfield::components::DepthLines,
-            Transform::from_translation(Vec3::Z * lines_z),
+            ball_modifiers.clone(),
+            Transform::from_translation(Vec3::Z * ball_z),
+            physics::components::BoundingSphere {
+                radius: ball_modifiers.base_radius,
+            },
+        ))
+        .id();
+
+    let line_entity = app
+        .world_mut()
+        .spawn((
+            playfield::components::DepthLine,
+            Transform::from_translation(Vec3::Z),
         ))
         .id();
 
     app.add_message::<rendering::messages::MaterialColorsChangedMessage>();
-    app.add_systems(Update, playfield::systems::highlight_depth_lines);
+    app.add_systems(Update, playfield::systems::track_ball_with_depth_line);
 
     app.update();
 
-    lines_entity
+    (ball_entity, line_entity)
 }
 
 use std::f32::EPSILON;

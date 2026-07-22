@@ -12,8 +12,12 @@
             attribute: Size(
                 ScalarCurve(
                     key_frames: [
-                        (t: 0.0, value: 1.0, interp: Linear),
-                        (t: 0.5, value: 0.4, interp: Linear),
+                        (t: 0.0, value: 1.0, interp: Constant),
+                        (t: 0.05, value: 0.4, interp: Constant),
+                        (t: 0.1, value: 1.0, interp: Constant),
+                        (t: 0.15, value: 0.4, interp: Constant),
+                        (t: 0.9, value: 1.0, interp: Constant),
+                        (t: 0.95, value: 0.4, interp: Constant),
                         (t: 1.0, value: 1.0, interp: Constant),
                     ],
                 ),

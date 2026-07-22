@@ -1,5 +1,6 @@
 use crate::physics;
 use bevy::prelude::*;
+use std::collections::HashSet;
 
 pub fn apply_velocity(
     time: Res<Time>,
@@ -11,7 +12,24 @@ pub fn apply_velocity(
     }
 }
 
-pub fn apply_curve(
+pub fn apply_curve_spin(
+    time: Res<Time>,
+    query: Query<(&physics::components::Curve, &mut Transform)>,
+) {
+    let delta_secs = time.delta_secs();
+    for (curve, mut transform) in query {
+        // Spin axis is perpendicular to the curve direction
+        // e.g. curving left/right = spinning around Z, curving up/down = spinning around X
+        let spin_axis = Vec3::new(curve.0.y, -curve.0.x, 0.0).normalize_or_zero();
+        let spin_rate = curve.0.length(); // stronger curve = faster spin
+
+        if spin_rate > 0.0 {
+            transform.rotate(Quat::from_axis_angle(spin_axis, spin_rate * delta_secs));
+        }
+    }
+}
+
+pub fn add_curve_velocity(
     time: Res<Time>,
     query: Query<(
         &mut physics::components::Velocity,
@@ -24,8 +42,6 @@ pub fn apply_curve(
         velocity.0.y += curve.0.y * delta_secs;
     }
 }
-
-use std::collections::HashSet;
 
 pub fn detect_collisions(
     spheres: Query<(Entity, &Transform, &physics::components::BoundingSphere)>,

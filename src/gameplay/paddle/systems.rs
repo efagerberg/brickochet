@@ -13,7 +13,12 @@ pub fn paddle_mouse_control(
         &playfield::components::Goal,
         &physics::components::BoundingCuboid,
     )>,
+    cursor_options: Single<&bevy::window::CursorOptions>,
 ) {
+    if cursor_options.visible {
+        return;
+    }
+
     let mut delta = Vec2::ZERO;
 
     for ev in mouse_motion_message_reader.read() {
