@@ -4,6 +4,9 @@ use crate::{audio, gameplay, health, physics, states};
 
 pub mod mesh_generation;
 
+#[cfg(test)]
+mod tests;
+
 pub fn plugin(app: &mut App) {
     app.add_systems(
         OnEnter(states::GameState::Gameplay),
@@ -58,10 +61,11 @@ fn spawn_playfield(
         emissive: line_highlight_color,
         ..default()
     });
-    let mesh = meshes.add(mesh_generation::generate_outline(
+    let mesh = mesh_generation::generate(mesh_generation::outline_geometry(
         half_size.truncate(),
         line_thickness,
     ));
+    let mesh = meshes.add(mesh);
 
     children.push(
         commands
@@ -244,25 +248,26 @@ fn spawn_paddle(
     };
     let healthy_color = LinearRgba::rgb(0.0, 0.2, 0.1);
     let critical_color = LinearRgba::rgb(0.5, 0.2, 0.1);
-    let reticle_line_thickness = 0.05;
-    let reticle_mesh = mesh_generation::combine_meshes([
-        (
-            mesh_generation::generate_outline(paddle_half_size.truncate(), reticle_line_thickness),
+    let paddle_decal_thickness = 0.05;
+    let paddle_decal_geometry = mesh_generation::Geometry::default()
+        .merge(
+            &mesh_generation::outline_geometry(paddle_half_size.truncate(), paddle_decal_thickness),
             Mat4::IDENTITY,
-        ),
-        (
-            mesh_generation::generate_cross(
+        )
+        .merge(
+            &mesh_generation::reticle_geometry(
                 paddle_half_size.truncate(),
-                reticle_line_thickness,
+                paddle_decal_thickness,
                 0.5,
             ),
             Mat4::IDENTITY,
-        ),
-        (
-            mesh_generation::generate_outline(Vec2::new(0.25, 0.25), reticle_line_thickness),
+        )
+        .merge(
+            &mesh_generation::outline_geometry(Vec2::new(0.25, 0.25), paddle_decal_thickness),
             Mat4::IDENTITY,
-        ),
-    ]);
+        );
+
+    let reticle_mesh = mesh_generation::generate(paddle_decal_geometry);
     commands
         .spawn((
             gameplay::paddle::components::Paddle,
