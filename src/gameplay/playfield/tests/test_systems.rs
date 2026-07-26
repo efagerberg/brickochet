@@ -4,6 +4,7 @@ use test_case::test_case;
 use crate::gameplay::{ball, playfield};
 use crate::physics;
 use crate::rendering;
+use crate::test_utils;
 
 #[derive(Debug)]
 struct TrackBallWithDepthLineCase {
@@ -61,8 +62,6 @@ fn run_tracking(app: &mut App, ball_z: f32) -> (Entity, Entity) {
     (ball_entity, line_entity)
 }
 
-use std::f32::EPSILON;
-
 struct WallCollisionHandlerCase {
     position: Vec3,
     velocity: Vec3,
@@ -117,31 +116,28 @@ fn handle_wall_collision_system(case: WallCollisionHandlerCase) {
     app.add_systems(Update, playfield::systems::handle_wall_collision);
     app.update();
 
-    assert_vec3_eq(
+    test_utils::assertions::assert_vec3_approx_eq(
         app.world()
             .get::<Transform>(ball_entity)
             .unwrap()
             .translation,
         case.expected_position,
-        "position",
     );
 
-    assert_vec3_eq(
+    test_utils::assertions::assert_vec3_approx_eq(
         app.world()
             .get::<physics::components::Velocity>(ball_entity)
             .unwrap()
             .0,
         case.expected_velocity,
-        "velocity",
     );
 
-    assert_vec2_eq(
+    test_utils::assertions::assert_vec2_approx_eq(
         app.world()
             .get::<physics::components::Curve>(ball_entity)
             .unwrap()
             .0,
         case.expected_curve,
-        "curve",
     );
 }
 
@@ -186,24 +182,4 @@ fn setup_wall_collision_case(app: &mut App, case: &WallCollisionHandlerCase) -> 
         });
 
     ball_entity
-}
-
-fn assert_vec3_eq(actual: Vec3, expected: Vec3, label: &str) {
-    assert!(
-        (actual - expected).length() < EPSILON,
-        "{}: expected {:?}, got {:?}",
-        label,
-        expected,
-        actual
-    );
-}
-
-fn assert_vec2_eq(actual: Vec2, expected: Vec2, label: &str) {
-    assert!(
-        (actual - expected).length() < EPSILON,
-        "{}: expected {:?}, got {:?}",
-        label,
-        expected,
-        actual
-    );
 }

@@ -18,20 +18,20 @@ pub fn sphere_aabb_contact_normal(
     aabb_position: Vec3,
     aabb_half_extents: Vec3,
 ) -> Vec3 {
-    let delta = sphere_position - aabb_position;
-    let abs_delta = delta.abs();
+    let distance = sphere_position - aabb_position;
+    let abs_distance = distance.abs();
 
-    let overlap_x = aabb_half_extents.x + sphere_radius - abs_delta.x;
-    let overlap_y = aabb_half_extents.y + sphere_radius - abs_delta.y;
-    let overlap_z = aabb_half_extents.z + sphere_radius - abs_delta.z;
+    let overlap_x = aabb_half_extents.x + sphere_radius - abs_distance.x;
+    let overlap_y = aabb_half_extents.y + sphere_radius - abs_distance.y;
+    let overlap_z = aabb_half_extents.z + sphere_radius - abs_distance.z;
 
     // Assumes intersection already confirmed
     if overlap_x <= overlap_y && overlap_x <= overlap_z {
-        Vec3::new(delta.x.signum(), 0.0, 0.0)
+        Vec3::new(distance.x.signum(), 0.0, 0.0)
     } else if overlap_y <= overlap_z {
-        Vec3::new(0.0, delta.y.signum(), 0.0)
+        Vec3::new(0.0, distance.y.signum(), 0.0)
     } else {
-        Vec3::new(0.0, 0.0, delta.z.signum())
+        Vec3::new(0.0, 0.0, distance.z.signum())
     }
 }
 

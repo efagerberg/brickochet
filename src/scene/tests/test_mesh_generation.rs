@@ -75,7 +75,7 @@ fn test_merge_geometry(case: GeometryMergeCase) {
 
     assert_eq!(merged.indices, case.expected.indices);
     for (actual, expected) in merged.positions.into_iter().zip(case.expected.positions) {
-        test_utils::assertions::assert_floats_eq(actual, expected);
+        test_utils::assertions::assert_floats_approx_eq(actual, expected);
     }
 }
 
@@ -191,8 +191,8 @@ fn test_outline_geometry_bounding_extent_matches_half_size() {
     let expected_max_x = half_size.x + thickness * 0.5;
     let expected_max_y = half_size.y + thickness * 0.5;
 
-    test_utils::assertions::assert_floats_eq([max_x], [expected_max_x]);
-    test_utils::assertions::assert_floats_eq([max_y], [expected_max_y]);
+    test_utils::assertions::assert_floats_approx_eq([max_x], [expected_max_x]);
+    test_utils::assertions::assert_floats_approx_eq([max_y], [expected_max_y]);
 }
 
 #[test]

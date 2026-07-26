@@ -25,7 +25,7 @@ where
     assert_eq!(actual_count, expected_count);
 }
 
-pub fn assert_floats_eq(
+pub fn assert_floats_approx_eq(
     actual: impl IntoIterator<Item = f32>,
     expected: impl IntoIterator<Item = f32>,
 ) {
@@ -44,10 +44,10 @@ pub fn assert_floats_eq(
         assert_float_eq::assert_float_relative_eq!(x, y);
     }
 }
-pub fn assert_vec3_eq(actual: Vec3, expected: Vec3) {
-    assert_floats_eq(actual.to_array(), expected.to_array());
+pub fn assert_vec3_approx_eq(actual: Vec3, expected: Vec3) {
+    assert_floats_approx_eq(actual.to_array(), expected.to_array());
 }
 
-pub fn assert_vec2_eq(actual: Vec2, expected: Vec2) {
-    assert_floats_eq(actual.to_array(), expected.to_array());
+pub fn assert_vec2_approx_eq(actual: Vec2, expected: Vec2) {
+    assert_floats_approx_eq(actual.to_array(), expected.to_array());
 }

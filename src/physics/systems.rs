@@ -1,6 +1,5 @@
 use crate::physics;
 use bevy::prelude::*;
-use std::collections::HashSet;
 
 pub fn apply_velocity(
     time: Res<Time>,
@@ -48,21 +47,8 @@ pub fn detect_collisions(
     cuboids: Query<(Entity, &Transform, &physics::components::BoundingCuboid)>,
     mut messages: MessageWriter<physics::messages::CollisionMessage>,
 ) {
-    let mut processed_entities: HashSet<Entity> = HashSet::new(); // Track already collided entities
-
     for (a_entity, a_transform, a_bounds) in spheres.iter() {
-        // Skip if this sphere has already collided with another entity
-        if processed_entities.contains(&a_entity) {
-            continue;
-        }
-
         for (b_entity, b_transform, b_bounds) in cuboids.iter() {
-            // Skip if this cuboid has already collided with another entity
-            if processed_entities.contains(&b_entity) {
-                continue;
-            }
-
-            // Check for intersection
             if physics::math::sphere_aabb_intersects(
                 a_transform.translation,
                 a_bounds.radius,
@@ -84,7 +70,6 @@ pub fn detect_collisions(
 
                 let penetration = a_bounds.radius - contact_point.distance(a_transform.translation);
 
-                // Create a collision message
                 messages.write(physics::messages::CollisionMessage {
                     a: a_entity,
                     b: b_entity,
@@ -92,12 +77,6 @@ pub fn detect_collisions(
                     contact_point,
                     penetration,
                 });
-
-                // Mark both entities as processed
-                processed_entities.insert(a_entity);
-                processed_entities.insert(b_entity);
-
-                break; // Exit the inner loop after a collision to prevent further collisions in this frame
             }
         }
     }
@@ -109,15 +88,7 @@ pub fn resolve_sphere_aabb_collision(
         (&mut physics::components::Velocity, &mut Transform),
         With<physics::components::BoundingSphere>,
     >,
-    _cuboid_query: Query<
-        Entity,
-        (
-            With<physics::components::BoundingCuboid>,
-            Without<physics::components::BoundingSphere>,
-        ),
-    >,
 ) {
-    // Collect all collisions per sphere
     let mut collisions_per_sphere: std::collections::HashMap<
         Entity,
         Vec<&physics::messages::CollisionMessage>,
@@ -129,14 +100,37 @@ pub fn resolve_sphere_aabb_collision(
             .push(message);
     }
 
-    for (sphere_entity, collisions) in collisions_per_sphere {
+    for (sphere_entity, mut collisions) in collisions_per_sphere {
         if let Ok((mut velocity, mut transform)) = sphere_query.get_mut(sphere_entity) {
-            // Only consider collisions with valid cuboids
+            // Resolve deepest penetration first — if the ball is wedged into
+            // two things at once, fixing the worse overlap first tends to
+            // naturally reduce or resolve the other.
+            collisions.sort_by(|a, b| b.penetration.partial_cmp(&a.penetration).unwrap());
+
             for message in collisions {
-                // Move the sphere out of the cuboid
+                // shouldn't happen given intersects() gated this, but cheap to guard
+                if message.penetration <= 0.0 {
+                    warn!(
+                        "Got {} penetration which should not happen. Collision \
+                        detection might have a bug.",
+                        message.penetration
+                    );
+                    continue;
+                }
+
+                // Depenetrate
                 transform.translation += message.normal * message.penetration;
 
-                // Reflect velocity once
+                // Only reflect the velocity if the ball is actually moving
+                // *into* the surface. Without this check, a ball that's
+                // already separating (e.g. after being resolved against a
+                // different contact this same frame) gets its velocity
+                // flipped right back toward the wall, which is what was
+                // producing the stick-then-escape jitter.
+                let approach_speed = velocity.0.dot(message.normal);
+                if approach_speed >= 0.0 {
+                    continue;
+                }
                 velocity.0 = velocity.0.reflect(message.normal);
             }
         }

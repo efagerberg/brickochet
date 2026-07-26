@@ -226,38 +226,78 @@ fn test_detect_collisions(case: DetectCollisionCase) {
 }
 
 #[derive(Default)]
+struct CollisionData {
+    normal: Vec3,
+    penetration: f32,
+}
+
+#[derive(Default)]
 struct ResolveSphereAabbCollisionCase {
     initial_velocity: Vec3,
     initial_position: Vec3,
-    normal: Vec3,
-    penetration: f32,
+    collision_data: Option<CollisionData>,
     expected_velocity: Vec3,
     expected_position: Vec3,
 }
 
 #[test_case(
     ResolveSphereAabbCollisionCase {
+        initial_position: Vec3::new(0.0, 1.0, 0.0),
+        initial_velocity: Vec3::new(1.0, 2.0, 3.0),
+        collision_data: None,
+        expected_position: Vec3::new(0.0, 1.0, 0.0),
+        expected_velocity: Vec3::new(1.0, 2.0, 3.0)
+    };
+    "Noops when no collision_data"
+)]
+#[test_case(
+    ResolveSphereAabbCollisionCase {
+        initial_velocity: Vec3::new(1.0, 1.0, 1.0),
+        collision_data: Some(CollisionData {
+            normal: Vec3::new(0.0, 0.0, 1.0),
+            penetration: -1.0,
+        }),
+        expected_position: Vec3::ZERO,
+        expected_velocity: Vec3::new(1.0, 1.0, 1.0),
+        ..default()
+    };
+    "skips when penetration is negative"
+)]
+#[test_case(
+    ResolveSphereAabbCollisionCase {
         initial_velocity: Vec3::new(0.0, 0.0, -1.0),
-        normal: Vec3::new(0.0, 0.0, 1.0),
+        collision_data: Some(CollisionData {
+            normal: Vec3::new(0.0, 0.0, 1.0),
+            penetration: 1.0,
+        }),
         expected_velocity: Vec3::new(0.0, 0.0, 1.0),
+        expected_position: Vec3::new(0.0, 0.0, 1.0),
         ..default()
     }; "reflects negative z velocity")]
 #[test_case(
     ResolveSphereAabbCollisionCase {
         initial_velocity: Vec3::new(0.0, 0.0, 1.0),
-        normal: Vec3::new(0.0, 0.0, -1.0),
+        collision_data: Some(CollisionData {
+            normal: Vec3::new(0.0, 0.0, -1.0),
+            penetration: 1.0,
+        }),
         expected_velocity: Vec3::new(0.0, 0.0, -1.0),
+        expected_position: Vec3::new(0.0, 0.0, -1.0),
         ..default()
     }; "reflects positive z velocity")]
 #[test_case(
     ResolveSphereAabbCollisionCase {
         initial_position: Vec3::new(1.0, 2.0, 3.0),
-        normal: Vec3::new(0.0, 0.0, -1.0),
-        penetration: 1.0,
+        collision_data: Some(CollisionData {
+            normal: Vec3::new(0.0, 0.0, -1.0),
+            penetration: 1.0,
+        }),
         expected_position: Vec3::new(1.0, 2.0, 2.0),
         ..default()
     }; "Moves transform out of collision manually")]
-fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
+fn test_resolve_sphere_aabb_collision_changes_position_and_velocity(
+    case: ResolveSphereAabbCollisionCase,
+) {
     let mut app = App::new();
     app.add_message::<physics::messages::CollisionMessage>();
 
@@ -276,17 +316,19 @@ fn test_resolve_sphere_aabb_collision(case: ResolveSphereAabbCollisionCase) {
             half_extents: Vec3::new(1.0, 1.0, 1.0),
         },))
         .id();
-    let collision_message = physics::messages::CollisionMessage {
-        a: sphere_entity,
-        b: cuboid_entity,
-        normal: case.normal,
-        contact_point: Vec3::default(),
-        penetration: case.penetration,
-    };
-    let mut messages = app
-        .world_mut()
-        .resource_mut::<Messages<physics::messages::CollisionMessage>>();
-    messages.write(collision_message);
+    if let Some(collision_data) = case.collision_data {
+        let collision_message = physics::messages::CollisionMessage {
+            a: sphere_entity,
+            b: cuboid_entity,
+            normal: collision_data.normal,
+            contact_point: Vec3::default(),
+            penetration: collision_data.penetration,
+        };
+        let mut messages = app
+            .world_mut()
+            .resource_mut::<Messages<physics::messages::CollisionMessage>>();
+        messages.write(collision_message);
+    }
 
     app.add_systems(Update, physics::systems::resolve_sphere_aabb_collision);
     app.update();
