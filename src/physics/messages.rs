@@ -6,5 +6,5 @@ pub struct CollisionMessage {
     pub b: Entity,
     pub normal: Vec3,
     pub contact_point: Vec3,
-    pub penetration: f32,
+    pub time_of_impact: f32,
 }

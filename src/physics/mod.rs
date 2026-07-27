@@ -22,9 +22,9 @@ pub fn plugin(app: &mut App) {
             FixedUpdate,
             (
                 PhysicsSet::ComputeForces,
-                PhysicsSet::ApplyForces.after(PhysicsSet::ComputeForces),
-                PhysicsSet::DetectCollisions.after(PhysicsSet::ApplyForces),
-                PhysicsSet::ResolveCollisions.after(PhysicsSet::DetectCollisions),
+                PhysicsSet::DetectCollisions.after(PhysicsSet::ComputeForces),
+                PhysicsSet::ApplyForces.after(PhysicsSet::DetectCollisions),
+                PhysicsSet::ResolveCollisions.after(PhysicsSet::ApplyForces),
             ),
         )
         .add_systems(

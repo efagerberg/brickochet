@@ -1,43 +1,79 @@
 use bevy::math::Vec3;
 
-pub fn sphere_aabb_intersects(
-    sphere_position: Vec3,
-    radius: f32,
-    aabb_position: Vec3,
-    aabb_half_extents: Vec3,
-) -> bool {
-    let closest = closest_point_on_aabb(sphere_position, aabb_position, aabb_half_extents);
-    sphere_position.distance_squared(closest) <= radius * radius
+/// Result of a swept sphere-vs-AABB test.
+pub struct SweepHit {
+    /// Fraction of this frame's motion (0.0..=1.0) at which contact occurs.
+    pub t: f32,
+    pub normal: Vec3,
 }
 
-/// Computes an axis-aligned contact normal for a sphere vs AABB collision
-/// using smallest penetration depth.
-pub fn sphere_aabb_contact_normal(
+/// Sweeps a sphere along `velocity * dt` and checks whether it hits a static
+/// AABB anywhere along that path, not just at the end position.
+///
+/// Returns `None` if the sphere's path never touches the box within this
+/// frame's motion (t in [0, 1]).
+pub fn sweep_sphere_aabb(
     sphere_position: Vec3,
+    sphere_velocity: Vec3,
+    dt: f32,
     sphere_radius: f32,
     aabb_position: Vec3,
     aabb_half_extents: Vec3,
-) -> Vec3 {
-    let distance = sphere_position - aabb_position;
-    let abs_distance = distance.abs();
+) -> Option<SweepHit> {
+    // Minkowski trick: inflate the box by the sphere's radius, then sweep a
+    // single point (the sphere's center) against the inflated box.
+    let expanded_half = aabb_half_extents + Vec3::splat(sphere_radius);
+    let min = aabb_position - expanded_half;
+    let max = aabb_position + expanded_half;
 
-    let overlap_x = aabb_half_extents.x + sphere_radius - abs_distance.x;
-    let overlap_y = aabb_half_extents.y + sphere_radius - abs_distance.y;
-    let overlap_z = aabb_half_extents.z + sphere_radius - abs_distance.z;
+    let motion = sphere_velocity * dt;
 
-    // Assumes intersection already confirmed
-    if overlap_x <= overlap_y && overlap_x <= overlap_z {
-        Vec3::new(distance.x.signum(), 0.0, 0.0)
-    } else if overlap_y <= overlap_z {
-        Vec3::new(0.0, distance.y.signum(), 0.0)
-    } else {
-        Vec3::new(0.0, 0.0, distance.z.signum())
+    let mut t_enter = 0.0_f32;
+    let mut t_exit = 1.0_f32;
+    let mut enter_axis = 0usize; // 0 = x, 1 = y, 2 = z
+
+    for axis in 0..3 {
+        let start = sphere_position[axis];
+        let d = motion[axis];
+        let lo = min[axis];
+        let hi = max[axis];
+
+        if d.abs() < f32::EPSILON {
+            // Not moving on this axis: must already be within the slab for
+            // any hit to be possible at all.
+            if start < lo || start > hi {
+                return None;
+            }
+            continue;
+        }
+
+        let inv_d = 1.0 / d;
+        let mut t1 = (lo - start) * inv_d;
+        let mut t2 = (hi - start) * inv_d;
+        if t1 > t2 {
+            std::mem::swap(&mut t1, &mut t2);
+        }
+
+        if t1 > t_enter {
+            t_enter = t1;
+            enter_axis = axis;
+        }
+        t_exit = t_exit.min(t2);
+
+        if t_enter > t_exit {
+            return None;
+        }
     }
-}
 
-pub fn closest_point_on_aabb(point: Vec3, aabb_center: Vec3, half_extents: Vec3) -> Vec3 {
-    let min = aabb_center - half_extents;
-    let max = aabb_center + half_extents;
+    if t_enter > 1.0 || t_exit < 0.0 {
+        return None;
+    }
 
-    point.clamp(min, max)
+    // Face-hit normal: outward along whichever axis we entered through.
+    let mut normal = Vec3::ZERO;
+    normal[enter_axis] = -motion[enter_axis].signum();
+
+    // No corner or edge correction to keep the feel right
+
+    Some(SweepHit { t: t_enter, normal })
 }

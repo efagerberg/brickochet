@@ -43,41 +43,46 @@ pub fn add_curve_velocity(
 }
 
 pub fn detect_collisions(
-    spheres: Query<(Entity, &Transform, &physics::components::BoundingSphere)>,
+    spheres: Query<(
+        Entity,
+        &Transform,
+        &physics::components::BoundingSphere,
+        &physics::components::Velocity,
+    )>,
     cuboids: Query<(Entity, &Transform, &physics::components::BoundingCuboid)>,
+    time: Res<Time>,
     mut messages: MessageWriter<physics::messages::CollisionMessage>,
 ) {
-    for (a_entity, a_transform, a_bounds) in spheres.iter() {
+    for (a_entity, a_transform, a_bounds, a_velocity) in spheres.iter() {
+        let mut earliest: Option<(Entity, physics::math::SweepHit)> = None;
+
         for (b_entity, b_transform, b_bounds) in cuboids.iter() {
-            if physics::math::sphere_aabb_intersects(
+            if let Some(hit) = physics::math::sweep_sphere_aabb(
                 a_transform.translation,
+                a_velocity.0,
+                time.delta_secs(),
                 a_bounds.radius,
                 b_transform.translation,
                 b_bounds.half_extents,
             ) {
-                let normal = physics::math::sphere_aabb_contact_normal(
-                    a_transform.translation,
-                    a_bounds.radius,
-                    b_transform.translation,
-                    b_bounds.half_extents,
-                );
-
-                let contact_point = physics::math::closest_point_on_aabb(
-                    a_transform.translation,
-                    b_transform.translation,
-                    b_bounds.half_extents,
-                );
-
-                let penetration = a_bounds.radius - contact_point.distance(a_transform.translation);
-
-                messages.write(physics::messages::CollisionMessage {
-                    a: a_entity,
-                    b: b_entity,
-                    normal,
-                    contact_point,
-                    penetration,
-                });
+                let is_earlier = earliest
+                    .as_ref()
+                    .map(|(_, prev)| hit.t < prev.t)
+                    .unwrap_or(true);
+                if is_earlier {
+                    earliest = Some((b_entity, hit));
+                }
             }
+        }
+        if let Some((b_entity, hit)) = earliest {
+            let contact_center = a_transform.translation + a_velocity.0 * time.delta_secs() * hit.t;
+            messages.write(physics::messages::CollisionMessage {
+                a: a_entity,
+                b: b_entity,
+                normal: hit.normal,
+                contact_point: contact_center,
+                time_of_impact: hit.t,
+            });
         }
     }
 }
@@ -88,6 +93,7 @@ pub fn resolve_sphere_aabb_collision(
         (&mut physics::components::Velocity, &mut Transform),
         With<physics::components::BoundingSphere>,
     >,
+    time: Res<Time>,
 ) {
     let mut collisions_per_sphere: std::collections::HashMap<
         Entity,
@@ -100,27 +106,10 @@ pub fn resolve_sphere_aabb_collision(
             .push(message);
     }
 
-    for (sphere_entity, mut collisions) in collisions_per_sphere {
+    for (sphere_entity, collisions) in collisions_per_sphere {
         if let Ok((mut velocity, mut transform)) = sphere_query.get_mut(sphere_entity) {
-            // Resolve deepest penetration first — if the ball is wedged into
-            // two things at once, fixing the worse overlap first tends to
-            // naturally reduce or resolve the other.
-            collisions.sort_by(|a, b| b.penetration.partial_cmp(&a.penetration).unwrap());
-
             for message in collisions {
-                // shouldn't happen given intersects() gated this, but cheap to guard
-                if message.penetration <= 0.0 {
-                    warn!(
-                        "Got {} penetration which should not happen. Collision \
-                        detection might have a bug.",
-                        message.penetration
-                    );
-                    continue;
-                }
-
-                // Depenetrate
-                transform.translation += message.normal * message.penetration;
-
+                transform.translation = message.contact_point;
                 // Only reflect the velocity if the ball is actually moving
                 // *into* the surface. Without this check, a ball that's
                 // already separating (e.g. after being resolved against a
@@ -128,10 +117,12 @@ pub fn resolve_sphere_aabb_collision(
                 // flipped right back toward the wall, which is what was
                 // producing the stick-then-escape jitter.
                 let approach_speed = velocity.0.dot(message.normal);
-                if approach_speed >= 0.0 {
-                    continue;
+                if approach_speed < 0.0 {
+                    velocity.0 = velocity.0.reflect(message.normal);
                 }
-                velocity.0 = velocity.0.reflect(message.normal);
+                let remaining = (1.0 - message.time_of_impact) * time.delta_secs();
+                transform.translation =
+                    message.contact_point + message.normal * 1e-4 + velocity.0 * remaining;
             }
         }
     }
