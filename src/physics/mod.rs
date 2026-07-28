@@ -23,18 +23,18 @@ pub fn plugin(app: &mut App) {
             (
                 PhysicsSet::ComputeForces,
                 PhysicsSet::DetectCollisions.after(PhysicsSet::ComputeForces),
-                PhysicsSet::ApplyForces.after(PhysicsSet::DetectCollisions),
-                PhysicsSet::ResolveCollisions.after(PhysicsSet::ApplyForces),
+                PhysicsSet::ResolveCollisions.after(PhysicsSet::DetectCollisions),
+                PhysicsSet::ApplyForces.after(PhysicsSet::ResolveCollisions),
             ),
         )
         .add_systems(
             FixedUpdate,
             (
                 systems::add_curve_velocity.in_set(PhysicsSet::ComputeForces),
-                (systems::apply_velocity, systems::apply_curve_spin)
-                    .in_set(PhysicsSet::ApplyForces),
                 systems::detect_collisions.in_set(PhysicsSet::DetectCollisions),
                 systems::resolve_sphere_aabb_collision.in_set(PhysicsSet::ResolveCollisions),
+                (systems::apply_velocity, systems::apply_curve_spin)
+                    .in_set(PhysicsSet::ApplyForces),
             ),
         );
 }

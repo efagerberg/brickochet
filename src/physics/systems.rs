@@ -3,11 +3,26 @@ use bevy::prelude::*;
 
 pub fn apply_velocity(
     time: Res<Time>,
-    query: Query<(&mut Transform, &physics::components::Velocity)>,
+    query: Query<(Entity, &mut Transform, &physics::components::Velocity)>,
+    mut messages: MessageReader<physics::messages::CollisionMessage>,
 ) {
+    let mut entity_to_message: std::collections::HashMap<
+        Entity,
+        &physics::messages::CollisionMessage,
+    > = std::collections::HashMap::new();
+    for message in messages.read() {
+        entity_to_message.insert(message.a, message);
+        entity_to_message.insert(message.b, message);
+    }
     let delta_secs = time.delta_secs();
-    for (mut transform, velocity) in query {
-        transform.translation += velocity.0 * delta_secs;
+    for (entity, mut transform, velocity) in query {
+        if let Some(message) = entity_to_message.remove(&entity) {
+            let remaining_secs = (1.0 - message.time_of_impact) * time.delta_secs();
+            transform.translation =
+                message.contact_point + message.normal * 1e-4 + velocity.0 * remaining_secs;
+        } else {
+            transform.translation += velocity.0 * delta_secs;
+        }
     }
 }
 
@@ -74,6 +89,8 @@ pub fn detect_collisions(
                 }
             }
         }
+
+        // Take earliest collision event
         if let Some((b_entity, hit)) = earliest {
             let contact_center = a_transform.translation + a_velocity.0 * time.delta_secs() * hit.t;
             messages.write(physics::messages::CollisionMessage {
@@ -90,10 +107,9 @@ pub fn detect_collisions(
 pub fn resolve_sphere_aabb_collision(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
-        (&mut physics::components::Velocity, &mut Transform),
+        &mut physics::components::Velocity,
         With<physics::components::BoundingSphere>,
     >,
-    time: Res<Time>,
 ) {
     let mut collisions_per_sphere: std::collections::HashMap<
         Entity,
@@ -107,9 +123,8 @@ pub fn resolve_sphere_aabb_collision(
     }
 
     for (sphere_entity, collisions) in collisions_per_sphere {
-        if let Ok((mut velocity, mut transform)) = sphere_query.get_mut(sphere_entity) {
+        if let Ok(mut velocity) = sphere_query.get_mut(sphere_entity) {
             for message in collisions {
-                transform.translation = message.contact_point;
                 // Only reflect the velocity if the ball is actually moving
                 // *into* the surface. Without this check, a ball that's
                 // already separating (e.g. after being resolved against a
@@ -120,9 +135,6 @@ pub fn resolve_sphere_aabb_collision(
                 if approach_speed < 0.0 {
                     velocity.0 = velocity.0.reflect(message.normal);
                 }
-                let remaining = (1.0 - message.time_of_impact) * time.delta_secs();
-                transform.translation =
-                    message.contact_point + message.normal * 1e-4 + velocity.0 * remaining;
             }
         }
     }
