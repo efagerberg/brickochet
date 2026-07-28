@@ -41,7 +41,7 @@ pub fn plugin(app: &mut App) {
         FixedUpdate,
         (
             paddle::systems::apply_curve_from_motion_record
-                .before(crate::physics::PhysicsSet::ApplyForces),
+                .before(crate::physics::PhysicsSet::ComputeForces),
             (
                 paddle::systems::apply_paddle_impact_modifiers,
                 playfield::systems::handle_wall_collision,
