@@ -95,7 +95,7 @@ pub fn detect_collisions(
             messages.write(physics::messages::CollisionMessage {
                 a: a_entity,
                 b: b_entity,
-                hit: hit,
+                hit,
             });
         }
     }

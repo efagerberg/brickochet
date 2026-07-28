@@ -40,7 +40,7 @@ struct GrabMouseCase {
 )]
 fn test_grab_mouse_alters_cursor_options_given_expected_input(case: GrabMouseCase) {
     let mut app = App::new();
-    app.add_systems(Update, input::systems::grab_mouse);
+    app.add_systems(Update, input::systems::update_cursor_on_mouse_input);
     let entity = app.world_mut().spawn(case.cursor_options).id();
     let mut keyboard_input = ButtonInput::<KeyCode>::default();
     if let Some(press_key) = case.press_key {
