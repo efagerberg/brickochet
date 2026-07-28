@@ -17,9 +17,9 @@ pub fn apply_velocity(
     let delta_secs = time.delta_secs();
     for (entity, mut transform, velocity) in query {
         if let Some(message) = entity_to_message.remove(&entity) {
-            let remaining_secs = (1.0 - message.time_of_impact) * time.delta_secs();
+            let remaining_secs = (1.0 - message.hit.t) * time.delta_secs();
             transform.translation =
-                message.contact_point + message.normal * 1e-4 + velocity.0 * remaining_secs;
+                message.hit.contact_point + message.hit.normal * 1e-4 + velocity.0 * remaining_secs;
         } else {
             transform.translation += velocity.0 * delta_secs;
         }
@@ -92,13 +92,10 @@ pub fn detect_collisions(
 
         // Take earliest collision event
         if let Some((b_entity, hit)) = earliest {
-            let contact_center = a_transform.translation + a_velocity.0 * time.delta_secs() * hit.t;
             messages.write(physics::messages::CollisionMessage {
                 a: a_entity,
                 b: b_entity,
-                normal: hit.normal,
-                contact_point: contact_center,
-                time_of_impact: hit.t,
+                hit: hit,
             });
         }
     }
@@ -131,9 +128,9 @@ pub fn resolve_sphere_aabb_collision(
                 // different contact this same frame) gets its velocity
                 // flipped right back toward the wall, which is what was
                 // producing the stick-then-escape jitter.
-                let approach_speed = velocity.0.dot(message.normal);
+                let approach_speed = velocity.0.dot(message.hit.normal);
                 if approach_speed < 0.0 {
-                    velocity.0 = velocity.0.reflect(message.normal);
+                    velocity.0 = velocity.0.reflect(message.hit.normal);
                 }
             }
         }

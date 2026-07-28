@@ -1,10 +1,12 @@
 use bevy::math::Vec3;
 
 /// Result of a swept sphere-vs-AABB test.
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SweepHit {
     /// Fraction of this frame's motion (0.0..=1.0) at which contact occurs.
     pub t: f32,
     pub normal: Vec3,
+    pub contact_point: Vec3,
 }
 
 /// Sweeps a sphere along `velocity * dt` and checks whether it hits a static
@@ -69,11 +71,17 @@ pub fn sweep_sphere_aabb(
         return None;
     }
 
+    let contact_point = sphere_position + motion * t_enter;
+
     // Face-hit normal: outward along whichever axis we entered through.
     let mut normal = Vec3::ZERO;
     normal[enter_axis] = -motion[enter_axis].signum();
 
     // No corner or edge correction to keep the feel right
 
-    Some(SweepHit { t: t_enter, normal })
+    Some(SweepHit {
+        t: t_enter,
+        normal,
+        contact_point,
+    })
 }
