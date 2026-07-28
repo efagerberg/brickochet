@@ -34,38 +34,34 @@ pub fn plugin(app: &mut App) {
             .run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
-        PostUpdate,
-        player::systems::restart_on_player_death.run_if(in_state(states::GameState::Gameplay)),
-    )
-    .add_systems(
         FixedUpdate,
         (
-            paddle::systems::apply_curve_from_motion_record
+            (
+                paddle::systems::apply_curve_from_motion_record,
+                brick::systems::update_curve_effect,
+                brick::systems::update_speed_effect,
+            )
                 .before(crate::physics::PhysicsSet::ComputeForces),
+            brick::systems::update_size_effect.before(crate::physics::PhysicsSet::DetectCollisions),
             (
                 paddle::systems::apply_paddle_impact_modifiers,
                 playfield::systems::handle_wall_collision,
-                (
-                    brick::systems::initialize_ricochet_effect,
-                    (
-                        brick::systems::update_curve_effect,
-                        brick::systems::update_speed_effect,
-                        brick::systems::update_size_effect,
-                    ),
-                )
-                    .chain(),
+                brick::systems::initialize_ricochet_effect,
             )
-                .after(crate::physics::PhysicsSet::ResolveCollisions)
-                .run_if(in_state(states::GameState::Gameplay)),
-        ),
+                .after(crate::physics::PhysicsSet::DetectCollisions),
+        )
+            .run_if(in_state(states::GameState::Gameplay)),
     )
     .add_systems(
         PostUpdate,
         (
-            playfield::systems::track_ball_with_depth_line,
-            ball::systems::ball_to_paddle_distance_glow,
-        )
-            .before(crate::rendering::RenderingSet::Integrate)
-            .run_if(in_state(states::GameState::Gameplay)),
+            player::systems::restart_on_player_death.run_if(in_state(states::GameState::Gameplay)),
+            (
+                playfield::systems::track_ball_with_depth_line,
+                ball::systems::ball_to_paddle_distance_glow,
+            )
+                .before(crate::rendering::RenderingSet::Integrate)
+                .run_if(in_state(states::GameState::Gameplay)),
+        ),
     );
 }

@@ -11,9 +11,9 @@ mod tests;
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum PhysicsSet {
     ComputeForces,
-    ApplyForces,
     DetectCollisions,
     ResolveCollisions,
+    Integrate,
 }
 
 pub fn plugin(app: &mut App) {
@@ -24,7 +24,7 @@ pub fn plugin(app: &mut App) {
                 PhysicsSet::ComputeForces,
                 PhysicsSet::DetectCollisions.after(PhysicsSet::ComputeForces),
                 PhysicsSet::ResolveCollisions.after(PhysicsSet::DetectCollisions),
-                PhysicsSet::ApplyForces.after(PhysicsSet::ResolveCollisions),
+                PhysicsSet::Integrate.after(PhysicsSet::ResolveCollisions),
             ),
         )
         .add_systems(
@@ -33,8 +33,7 @@ pub fn plugin(app: &mut App) {
                 systems::add_curve_velocity.in_set(PhysicsSet::ComputeForces),
                 systems::detect_collisions.in_set(PhysicsSet::DetectCollisions),
                 systems::resolve_sphere_aabb_collision.in_set(PhysicsSet::ResolveCollisions),
-                (systems::apply_velocity, systems::apply_curve_spin)
-                    .in_set(PhysicsSet::ApplyForces),
+                (systems::apply_velocity, systems::apply_curve_spin).in_set(PhysicsSet::Integrate),
             ),
         );
 }
