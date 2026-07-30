@@ -1,8 +1,13 @@
 use bevy::prelude::*;
 
+use crate::input::utils;
+
 pub fn grab_cursor(mut cursor_options: Single<&mut bevy::window::CursorOptions>) {
-    cursor_options.visible = false;
-    cursor_options.grab_mode = bevy::window::CursorGrabMode::Locked;
+    utils::grab_cursor(&mut cursor_options);
+}
+
+pub fn release_cursor(mut cursor_options: Single<&mut bevy::window::CursorOptions>) {
+    utils::release_cursor(&mut cursor_options);
 }
 
 pub fn update_cursor_on_mouse_input(
@@ -11,12 +16,10 @@ pub fn update_cursor_on_mouse_input(
     key: Res<ButtonInput<KeyCode>>,
 ) {
     if mouse.just_pressed(MouseButton::Left) {
-        cursor_options.visible = false;
-        cursor_options.grab_mode = bevy::window::CursorGrabMode::Locked;
+        utils::grab_cursor(&mut cursor_options);
     }
 
     if key.just_pressed(KeyCode::Escape) {
-        cursor_options.visible = true;
-        cursor_options.grab_mode = bevy::window::CursorGrabMode::None;
+        utils::release_cursor(&mut cursor_options);
     }
 }

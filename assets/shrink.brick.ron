@@ -1,0 +1,27 @@
+(
+    name: "Shrink Brick",
+    health: 2,
+    collision_sfx: Some((path: "audio/powerDown.ogg", volume: 1.0)),
+    light_fx: Some((
+        effect_type: Pulse(speed: 1.0, color: (1.0, 0.0, 0.8)),
+        intensity: 1.2,
+    )),
+    ricochet_effect: Some(
+        (
+            driver: Time(duration_seconds: 5),
+            attribute: Size(
+                ScalarCurve(
+                    key_frames: [
+                        (t: 0.0, value: 1.0, interp: Constant),
+                        (t: 0.05, value: 0.6, interp: Constant),
+                        (t: 0.1, value: 1.0, interp: Constant),
+                        (t: 0.15, value: 0.6, interp: Constant),
+                        (t: 0.9, value: 1.0, interp: Constant),
+                        (t: 0.95, value: 0.6, interp: Constant),
+                        (t: 1.0, value: 1.0, interp: Constant),
+                    ],
+                ),
+            )
+        )
+    ),
+)

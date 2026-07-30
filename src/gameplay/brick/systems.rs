@@ -182,6 +182,8 @@ type PaddleQueryFilter = (
     With<player::components::Player>,
 );
 
+const PLAYER_POSITION_OFFSET: f32 = 0.2;
+
 pub fn initialize_ricochet_effect(
     mut ball_query: Query<
         (&Transform, &physics::components::BoundingSphere),
@@ -213,9 +215,13 @@ pub fn initialize_ricochet_effect(
                         .next()
                         .expect("No player, cannot use DistanceToPlayer driver");
                     let ball_radius = bounding_sphere.radius;
-                    let contact_offset = bounding_cuboid.half_extents.z + ball_radius;
                     // ball travels from start toward the paddle's center; it will
                     // actually stop at the paddle's surface, short by contact_offset
+                    // Since balls can move fast the contact offset should include
+                    // additional buffer since in a tick the ball position could already
+                    // be reflected by the paddle.
+                    let contact_offset =
+                        bounding_cuboid.half_extents.z + ball_radius + PLAYER_POSITION_OFFSET;
                     let raw_end = paddle_transform.translation.z;
                     let direction = (raw_end - start).signum();
                     let end = raw_end - direction * contact_offset;
