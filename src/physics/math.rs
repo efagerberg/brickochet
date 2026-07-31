@@ -30,8 +30,8 @@ pub fn sweep_sphere_aabb(
 
     let motion = sphere_velocity * dt;
 
-    let mut t_enter = 0.0_f32;
-    let mut t_exit = 1.0_f32;
+    let mut t_enter = f32::NEG_INFINITY;
+    let mut t_exit = f32::INFINITY;
     let mut enter_axis = 0usize; // 0 = x, 1 = y, 2 = z
 
     for axis in 0..3 {
@@ -67,11 +67,22 @@ pub fn sweep_sphere_aabb(
         }
     }
 
+    // Every axis was a no-motion axis that was already inside the slab —
+    // no relative motion into the box at all, so there's nothing new to report.
+    if t_enter.is_infinite() {
+        return None;
+    }
+
+    // Not going to collide
     if t_enter > 1.0 || t_exit < 0.0 {
         return None;
     }
 
-    let contact_point = sphere_position + motion * t_enter;
+    // If we're already overlapping at the start of the frame, report it as
+    // an immediate hit (t = 0) rather than projecting the entry time backwards.
+    let t_hit = t_enter.max(0.0);
+
+    let contact_point = sphere_position + motion * t_hit;
 
     // Face-hit normal: outward along whichever axis we entered through.
     let mut normal = Vec3::ZERO;
@@ -80,7 +91,7 @@ pub fn sweep_sphere_aabb(
     // No corner or edge correction to keep the feel right
 
     Some(SweepHit {
-        t: t_enter,
+        t: t_hit,
         normal,
         contact_point,
     })
