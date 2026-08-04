@@ -1,25 +1,44 @@
 use crate::physics;
-use bevy::prelude::*;
+use bevy::{ecs::entity, prelude::*};
+
+/// Minimum gap enforced between a sphere and a surface it just collided
+/// with, applied along the collision normal after resolving contact.
+///
+/// This exists so the *next* frame's sweep (`sweep_sphere_aabb`) starts
+/// from a position that is unambiguously outside the surface rather than
+/// exactly on it or numerically inside it — without this, float error can
+/// put the sphere a hair on the wrong side of the boundary, which the
+/// sweep's "already overlapping" path (t_enter <= 0) then has to recover
+/// from every frame.
+///
+/// Chosen relative to world units, not sphere radius or velocity — if
+/// world units are small (sub-1.0 scale) or velocities are very high,
+/// this may need to grow; too small and it stops being effective against
+/// float noise, too large and it becomes a visible pop at contact.
+pub const COLLISION_SEPARATION_EPSILON: f32 = 1e-4;
 
 pub fn apply_velocity(
     time: Res<Time>,
     query: Query<(Entity, &mut Transform, &physics::components::Velocity)>,
     mut messages: MessageReader<physics::messages::CollisionMessage>,
 ) {
-    let mut entity_to_message: std::collections::HashMap<
-        Entity,
-        &physics::messages::CollisionMessage,
-    > = std::collections::HashMap::new();
+    // Invariant: `detect_collisions` writes at most one message per sphere
+    // entity (it already picks the earliest hit). If that ever changes,
+    // this map will silently keep only the last message written for a
+    // given entity, worth revisiting this data structure if you add
+    // multi-contact resolution per frame.
+    let mut entity_to_message: entity::EntityHashMap<&physics::messages::CollisionMessage> =
+        entity::EntityHashMap::new();
     for message in messages.read() {
         entity_to_message.insert(message.a, message);
-        entity_to_message.insert(message.b, message);
     }
     let delta_secs = time.delta_secs();
     for (entity, mut transform, velocity) in query {
         if let Some(message) = entity_to_message.remove(&entity) {
-            let remaining_secs = (1.0 - message.hit.t) * time.delta_secs();
-            transform.translation =
-                message.hit.contact_point + message.hit.normal * 1e-4 + velocity.0 * remaining_secs;
+            let remaining_secs = (1.0 - message.hit.t) * delta_secs;
+            transform.translation = message.hit.contact_point
+                + message.hit.normal * COLLISION_SEPARATION_EPSILON
+                + velocity.0 * remaining_secs;
         } else {
             transform.translation += velocity.0 * delta_secs;
         }
@@ -108,10 +127,9 @@ pub fn resolve_sphere_aabb_collision(
         With<physics::components::BoundingSphere>,
     >,
 ) {
-    let mut collisions_per_sphere: std::collections::HashMap<
-        Entity,
+    let mut collisions_per_sphere: entity::EntityHashMap<
         Vec<&physics::messages::CollisionMessage>,
-    > = std::collections::HashMap::new();
+    > = entity::EntityHashMap::new();
     for message in messages.read() {
         collisions_per_sphere
             .entry(message.a)

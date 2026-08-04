@@ -176,9 +176,11 @@ fn setup_wall_collision_case(app: &mut App, case: &WallCollisionHandlerCase) -> 
         .write(physics::messages::CollisionMessage {
             a: ball_entity,
             b: wall_entity,
-            contact_point: case.position,
-            normal: Vec3::Z,
-            penetration: 0.1,
+            hit: physics::math::SweepHit {
+                contact_point: case.position,
+                normal: Vec3::Z,
+                t: 0.1,
+            },
         });
 
     ball_entity

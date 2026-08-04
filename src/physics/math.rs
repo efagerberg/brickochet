@@ -1,7 +1,7 @@
 use bevy::math::Vec3;
 
 /// Result of a swept sphere-vs-AABB test.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
 pub struct SweepHit {
     /// Fraction of this frame's motion (0.0..=1.0) at which contact occurs.
     /// Clamped to 0.0 if the sphere was already overlapping the box at the

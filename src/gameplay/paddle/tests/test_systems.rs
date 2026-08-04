@@ -231,9 +231,11 @@ fn test_apply_paddle_impact_modifiers(case: ApplyPaddleImpactModifierCase) {
                 .write(physics::messages::CollisionMessage {
                     a: sphere_entity,
                     b: paddle_entity,
-                    normal: Vec3::default(),
-                    contact_point: Vec3::default(),
-                    penetration: 0.0,
+                    hit: physics::math::SweepHit {
+                        normal: Vec3::default(),
+                        contact_point: Vec3::default(),
+                        t: 0.0,
+                    },
                 });
         }
         PaddleImpactModifierSetupScenario::NoCollision => (),
@@ -245,9 +247,11 @@ fn test_apply_paddle_impact_modifiers(case: ApplyPaddleImpactModifierCase) {
                 .write(physics::messages::CollisionMessage {
                     a: non_sphere,
                     b: non_paddle,
-                    normal: Vec3::default(),
-                    contact_point: Vec3::default(),
-                    penetration: 0.0,
+                    hit: physics::math::SweepHit {
+                        normal: Vec3::default(),
+                        contact_point: Vec3::default(),
+                        t: 0.0,
+                    },
                 });
         }
     }
@@ -321,9 +325,11 @@ fn test_initialize_paddle_motion(case: InitializePaddleMotionCase) {
         .write(physics::messages::CollisionMessage {
             a: sphere_entity,
             b: paddle_entity,
-            normal: Vec3::default(),
-            contact_point: Vec3::default(),
-            penetration: 0.0,
+            hit: physics::math::SweepHit {
+                normal: Vec3::default(),
+                contact_point: Vec3::default(),
+                t: 0.0,
+            },
         });
 
     app.update();

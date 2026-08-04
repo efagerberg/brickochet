@@ -40,10 +40,11 @@ pub fn assert_floats_approx_eq(
         expected.len()
     );
 
-    for ((x, y)) in actual.into_iter().zip(expected) {
-        assert_float_eq::assert_float_relative_eq!(x, y);
+    for (x, y) in actual.into_iter().zip(expected) {
+        assert_float_eq::assert_float_absolute_eq!(x, y);
     }
 }
+
 pub fn assert_vec3_approx_eq(actual: Vec3, expected: Vec3) {
     assert_floats_approx_eq(actual.to_array(), expected.to_array());
 }

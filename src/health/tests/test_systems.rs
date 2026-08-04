@@ -250,9 +250,11 @@ fn test_handle_collision(case: HandleCollisionCase) {
     writer.write(physics::messages::CollisionMessage {
         a: collision_a_entity,
         b: collision_b_entity,
-        normal: Vec3::ZERO,
-        contact_point: Vec3::ZERO,
-        penetration: 0.0,
+        hit: physics::math::SweepHit {
+            normal: Vec3::ZERO,
+            contact_point: Vec3::ZERO,
+            t: 0.0,
+        },
     });
 
     app.update();
