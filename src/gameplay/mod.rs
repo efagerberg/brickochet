@@ -24,7 +24,6 @@ pub fn plugin(app: &mut App) {
         Update,
         (
             brick::systems::animate_light_fx,
-            paddle::systems::paddle_mouse_control,
             (
                 paddle::systems::initialize_paddle_motion,
                 paddle::systems::finalize_paddle_motion,
@@ -47,6 +46,7 @@ pub fn plugin(app: &mut App) {
                 paddle::systems::apply_paddle_impact_modifiers,
                 playfield::systems::handle_wall_collision,
                 brick::systems::initialize_ricochet_effect,
+                paddle::systems::paddle_mouse_control,
             )
                 .after(crate::physics::PhysicsSet::DetectCollisions),
         )

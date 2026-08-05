@@ -51,7 +51,10 @@ fn main() -> Result<(), BevyError> {
         main_menu::plugin,
         input::plugin,
     ))
-    .add_systems(Startup, setup_egui_settings);
+    .add_systems(Startup, setup_egui_settings)
+    .register_type::<physics::components::CuboidCollider>()
+    .register_type::<physics::components::SphereCollider>()
+    .register_type::<physics::components::Velocity>();
 
     #[cfg(debug_assertions)]
     {

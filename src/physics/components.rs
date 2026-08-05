@@ -6,17 +6,17 @@ pub struct Curve(pub Vec2);
 /// A collider for a  three-dimensional shape with six rectangular faces and all right
 /// angles. Half extents is used as a convenience for collision detection as it avoids
 /// a division. Ex center ± half_extents, not center ± size/2
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Reflect)]
 pub struct CuboidCollider {
     pub half_extents: Vec3,
 }
 
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Reflect)]
 pub struct SphereCollider {
     pub radius: f32,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Velocity(pub Vec3);
 
 /// A dynamic body: moved and reflected by the physics simulation itself
