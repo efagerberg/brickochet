@@ -5,8 +5,13 @@ use crate::physics;
 
 pub fn paddle_mouse_control(
     mut mouse_motion_message_reader: MessageReader<bevy::input::mouse::MouseMotion>,
+    time: Res<Time>,
     paddle_single: Single<
-        (&mut Transform, &physics::components::CuboidCollider),
+        (
+            &Transform,
+            &mut physics::components::Velocity,
+            &physics::components::CuboidCollider,
+        ),
         With<paddle::components::Paddle>,
     >,
     goal_query: Query<(
@@ -15,37 +20,58 @@ pub fn paddle_mouse_control(
     )>,
     cursor_options: Single<&bevy::window::CursorOptions>,
 ) {
+    let (paddle_transform, mut paddle_velocity, paddle_collider) = paddle_single.into_inner();
+
     if cursor_options.visible {
+        // Cursor visible (paused/menu, etc): stop the paddle rather than
+        // leaving last frame's velocity for apply_velocity to keep
+        // integrating while this system isn't producing new input.
+        paddle_velocity.0 = Vec3::ZERO;
         return;
     }
 
     let mut delta = Vec2::ZERO;
-
     for ev in mouse_motion_message_reader.read() {
         delta += ev.delta;
     }
 
     if delta == Vec2::ZERO {
+        // No mouse movement this frame: stop immediately, don't coast on
+        // a stale nonzero velocity from the last frame that did move.
+        paddle_velocity.0 = Vec3::ZERO;
         return;
     }
 
-    let (mut paddle_transform, paddle_collider) = paddle_single.into_inner();
+    let delta_secs = time.delta_secs();
 
     let enemy_goal = goal_query
         .iter()
         .find(|(goal, _)| **goal == playfield::components::Goal::Enemy);
 
-    if let Some((_, collider)) = enemy_goal {
-        let sensitivity = 0.025;
-        let new_velocity = delta * sensitivity;
-        let x_abs_limit = collider.half_extents.x - paddle_collider.half_extents.x;
-        let y_abs_limit = collider.half_extents.y - paddle_collider.half_extents.y;
+    let Some((_, collider)) = enemy_goal else {
+        paddle_velocity.0 = Vec3::ZERO;
+        return;
+    };
 
-        paddle_transform.translation.x =
-            (paddle_transform.translation.x + new_velocity.x).clamp(-x_abs_limit, x_abs_limit);
-        paddle_transform.translation.y =
-            (paddle_transform.translation.y - new_velocity.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
-    }
+    let sensitivity = 0.025;
+    let movement = delta * sensitivity; // desired displacement this frame, same as before
+    let x_abs_limit = collider.half_extents.x - paddle_collider.half_extents.x;
+    let y_abs_limit = collider.half_extents.y - paddle_collider.half_extents.y;
+
+    // Clamp against the goal bounds using the *current* position, exactly
+    // as the direct-mutation version did, then back out whatever velocity
+    // reproduces this same (possibly clamped) displacement once
+    // apply_velocity integrates it as `velocity * delta_secs`.
+    let target_x = (paddle_transform.translation.x + movement.x).clamp(-x_abs_limit, x_abs_limit);
+    let target_y = (paddle_transform.translation.y - movement.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
+
+    let clamped_displacement = Vec3::new(
+        target_x - paddle_transform.translation.x,
+        target_y - paddle_transform.translation.y,
+        0.0,
+    );
+
+    paddle_velocity.0 = clamped_displacement / delta_secs;
 }
 
 pub fn apply_paddle_impact_modifiers(

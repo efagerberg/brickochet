@@ -103,6 +103,9 @@ impl Default for PaddleMouseControlCase {
 fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
     let mut app = base_app(case.cursor_visible);
     app.add_systems(Update, paddle::systems::paddle_mouse_control);
+    let mut time: Time = Time::default();
+    time.advance_by(std::time::Duration::from_secs_f32(1.0));
+    app.insert_resource(time);
 
     let paddle_entity = app
         .world_mut()
@@ -111,6 +114,7 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
             physics::components::CuboidCollider {
                 half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5),
             },
+            physics::components::Velocity(Vec3::ZERO),
             Transform {
                 translation: case.starting_position,
                 ..default()
@@ -127,8 +131,11 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
 
     app.update();
 
-    let transform = app.world().get::<Transform>(paddle_entity).unwrap();
-    assert_eq!(transform.translation, case.expected_position);
+    let velocity = app
+        .world()
+        .get::<physics::components::Velocity>(paddle_entity)
+        .unwrap();
+    assert_eq!(velocity.0, case.expected_position);
 }
 
 enum PaddleImpactModifierSetupScenario {
@@ -399,9 +406,7 @@ fn test_finalize_paddle_motion(case: FinalizePaddleMotionCase) {
     });
 
     app.add_systems(Update, paddle::systems::finalize_paddle_motion);
-
-    let mut time: Time = Time::default();
-    app.insert_resource(time.clone());
+    app.insert_resource(Time::<()>::default());
 
     let entity = app
         .world_mut()
@@ -420,9 +425,9 @@ fn test_finalize_paddle_motion(case: FinalizePaddleMotionCase) {
         ))
         .id();
 
-    time.advance_by(std::time::Duration::from_secs_f32(case.advance_time));
-    *app.world_mut().resource_mut::<Time>() = time;
-
+    app.world_mut()
+        .resource_mut::<Time>()
+        .advance_by(std::time::Duration::from_secs_f32(case.advance_time));
     app.update();
 
     let record = app

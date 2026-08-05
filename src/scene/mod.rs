@@ -274,7 +274,10 @@ fn spawn_paddle(
             gameplay::paddle::components::Paddle,
             Name::new("Player Paddle"),
             collider.clone(),
-            physics::components::KinematicBody,
+            (
+                physics::components::Velocity(Vec3::ZERO),
+                physics::components::KinematicBody,
+            ),
             gameplay::paddle::components::PaddleMotionRecord::default(),
             gameplay::paddle::components::PaddleImpactModifiers::starting(),
             Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 2.0),
