@@ -192,9 +192,10 @@ fn spawn_playfield_walls(
                     Mesh3d(meshes.add(Cuboid::new(size.x, size.y, size.z))),
                     MeshMaterial3d(material.clone()),
                     Transform::from_translation(translation),
-                    physics::components::BoundingCuboid {
+                    physics::components::CuboidCollider {
                         half_extents: size * 0.5,
                     },
+                    physics::components::StaticBody,
                 ))
                 .id();
 
@@ -243,7 +244,7 @@ fn spawn_paddle(
     playfield_half_size: Vec3,
 ) -> Entity {
     let paddle_half_size = Vec3::new(1.5, 1.0, 0.1);
-    let bounds = physics::components::BoundingCuboid {
+    let collider = physics::components::CuboidCollider {
         half_extents: paddle_half_size,
     };
     let healthy_color = LinearRgba::rgb(0.0, 0.2, 0.1);
@@ -272,7 +273,8 @@ fn spawn_paddle(
         .spawn((
             gameplay::paddle::components::Paddle,
             Name::new("Player Paddle"),
-            bounds.clone(),
+            collider.clone(),
+            physics::components::KinematicBody,
             gameplay::paddle::components::PaddleMotionRecord::default(),
             gameplay::paddle::components::PaddleImpactModifiers::starting(),
             Transform::from_xyz(0.0, 0.0, playfield_half_size.z - 2.0),
@@ -294,7 +296,7 @@ fn spawn_paddle(
                 Mesh3d(meshes.add(Plane3d::new(
                     // Point towards camera view so player can see it
                     Vec3::new(0.0, 0.0, 1.0),
-                    bounds.half_extents.truncate(),
+                    collider.half_extents.truncate(),
                 ))),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     base_color: Color::from(LinearRgba::new(0.0, 0.0, 0.0, 0.85)),
@@ -326,9 +328,10 @@ fn spawn_ball(
         Name::new("Ball"),
         physics::components::Curve::default(),
         physics::components::Velocity(ball_modifiers.base_velocity),
-        physics::components::BoundingSphere {
+        physics::components::SphereCollider {
             radius: ball_modifiers.base_radius,
         },
+        physics::components::DynamicBody,
         Transform::default(),
         GlobalTransform::default(),
         Mesh3d(meshes.add(Sphere::new(ball_modifiers.base_radius))),

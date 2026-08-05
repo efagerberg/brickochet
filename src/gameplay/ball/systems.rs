@@ -7,7 +7,7 @@ use crate::physics;
 use crate::rendering;
 
 pub fn ball_to_paddle_distance_glow(
-    ball_query: Single<(Entity, &Transform), With<physics::components::BoundingSphere>>,
+    ball_query: Single<(Entity, &Transform), With<physics::components::SphereCollider>>,
     paddle_query: Single<
         &Transform,
         (

@@ -6,12 +6,12 @@ use crate::physics;
 pub fn paddle_mouse_control(
     mut mouse_motion_message_reader: MessageReader<bevy::input::mouse::MouseMotion>,
     paddle_single: Single<
-        (&mut Transform, &physics::components::BoundingCuboid),
+        (&mut Transform, &physics::components::CuboidCollider),
         With<paddle::components::Paddle>,
     >,
     goal_query: Query<(
         &playfield::components::Goal,
-        &physics::components::BoundingCuboid,
+        &physics::components::CuboidCollider,
     )>,
     cursor_options: Single<&bevy::window::CursorOptions>,
 ) {
@@ -29,17 +29,17 @@ pub fn paddle_mouse_control(
         return;
     }
 
-    let (mut paddle_transform, paddle_bounds) = paddle_single.into_inner();
+    let (mut paddle_transform, paddle_collider) = paddle_single.into_inner();
 
     let enemy_goal = goal_query
         .iter()
         .find(|(goal, _)| **goal == playfield::components::Goal::Enemy);
 
-    if let Some((_, bounds)) = enemy_goal {
+    if let Some((_, collider)) = enemy_goal {
         let sensitivity = 0.025;
         let new_velocity = delta * sensitivity;
-        let x_abs_limit = bounds.half_extents.x - paddle_bounds.half_extents.x;
-        let y_abs_limit = bounds.half_extents.y - paddle_bounds.half_extents.y;
+        let x_abs_limit = collider.half_extents.x - paddle_collider.half_extents.x;
+        let y_abs_limit = collider.half_extents.y - paddle_collider.half_extents.y;
 
         paddle_transform.translation.x =
             (paddle_transform.translation.x + new_velocity.x).clamp(-x_abs_limit, x_abs_limit);
@@ -52,7 +52,7 @@ pub fn apply_paddle_impact_modifiers(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         &mut physics::components::Velocity,
-        With<physics::components::BoundingSphere>,
+        With<physics::components::SphereCollider>,
     >,
     mut paddle_query: Query<
         &paddle::components::PaddleImpactModifiers,

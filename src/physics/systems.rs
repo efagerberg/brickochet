@@ -77,27 +77,30 @@ pub fn add_curve_velocity(
 }
 
 pub fn detect_collisions(
-    spheres: Query<(
-        Entity,
-        &Transform,
-        &physics::components::BoundingSphere,
-        &physics::components::Velocity,
-    )>,
-    cuboids: Query<(Entity, &Transform, &physics::components::BoundingCuboid)>,
+    spheres: Query<
+        (
+            Entity,
+            &Transform,
+            &physics::components::SphereCollider,
+            &physics::components::Velocity,
+        ),
+        With<physics::components::DynamicBody>,
+    >,
+    cuboids: Query<(Entity, &Transform, &physics::components::CuboidCollider)>,
     time: Res<Time>,
     mut messages: MessageWriter<physics::messages::CollisionMessage>,
 ) {
-    for (a_entity, a_transform, a_bounds, a_velocity) in spheres.iter() {
+    for (a_entity, a_transform, a_collider, a_velocity) in spheres.iter() {
         let mut earliest: Option<(Entity, physics::math::SweepHit)> = None;
 
-        for (b_entity, b_transform, b_bounds) in cuboids.iter() {
+        for (b_entity, b_transform, b_collider) in cuboids.iter() {
             if let Some(hit) = physics::math::sweep_sphere_aabb(
                 a_transform.translation,
                 a_velocity.0,
                 time.delta_secs(),
-                a_bounds.radius,
+                a_collider.radius,
                 b_transform.translation,
-                b_bounds.half_extents,
+                b_collider.half_extents,
             ) {
                 let is_earlier = earliest
                     .as_ref()
@@ -124,7 +127,7 @@ pub fn resolve_sphere_aabb_collision(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         &mut physics::components::Velocity,
-        With<physics::components::BoundingSphere>,
+        With<physics::components::SphereCollider>,
     >,
 ) {
     let mut collisions_per_sphere: entity::EntityHashMap<

@@ -282,10 +282,11 @@ fn test_detect_collisions(case: DetectCollisionCase) {
         .world_mut()
         .spawn((
             Transform::from_translation(case.sphere_translation),
-            physics::components::BoundingSphere {
+            physics::components::SphereCollider {
                 radius: case.sphere_radius,
             },
             physics::components::Velocity(case.sphere_velocity),
+            physics::components::DynamicBody,
         ))
         .id();
 
@@ -297,7 +298,7 @@ fn test_detect_collisions(case: DetectCollisionCase) {
                 .world_mut()
                 .spawn((
                     Transform::from_translation(props.translation),
-                    physics::components::BoundingCuboid {
+                    physics::components::CuboidCollider {
                         half_extents: props.half_extents,
                     },
                 ))
@@ -398,7 +399,7 @@ fn test_resolve_sphere_aabb_collision_updates_velocity(case: ResolveSphereAabbCo
 
     let sphere_entity = app
         .world_mut()
-        .spawn(physics::components::BoundingSphere { radius: 1.0 })
+        .spawn((physics::components::SphereCollider { radius: 1.0 },))
         .id();
     if let Some(initial_velocity) = case.initial_velocity {
         app.world_mut()
@@ -408,7 +409,7 @@ fn test_resolve_sphere_aabb_collision_updates_velocity(case: ResolveSphereAabbCo
 
     let cuboid_entity = app
         .world_mut()
-        .spawn((physics::components::BoundingCuboid {
+        .spawn((physics::components::CuboidCollider {
             half_extents: Vec3::new(1.0, 1.0, 1.0),
         },))
         .id();

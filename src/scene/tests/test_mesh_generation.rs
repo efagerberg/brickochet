@@ -86,7 +86,7 @@ struct LineGeometryBoundsCase {
 
 #[test_case(LineGeometryBoundsCase { length: 2.0, thickness: 0.1 }; "long thin line")]
 #[test_case(LineGeometryBoundsCase { length: 0.5, thickness: 0.5 }; "cube-like line")]
-fn test_line_geometry_positions_within_bounds(case: LineGeometryBoundsCase) {
+fn test_line_geometry_positions_within_collider(case: LineGeometryBoundsCase) {
     let geometry = mesh_generation::line_geometry(case.length, case.thickness);
     let half_length = case.length * 0.5;
     let half_thickness = case.thickness * 0.5;

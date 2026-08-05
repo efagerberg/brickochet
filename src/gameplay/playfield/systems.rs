@@ -7,7 +7,7 @@ pub fn track_ball_with_depth_line(
     ball_query: Single<
         &Transform,
         (
-            With<physics::components::BoundingSphere>,
+            With<physics::components::SphereCollider>,
             Without<playfield::components::DepthLine>,
         ),
     >,
@@ -31,9 +31,9 @@ pub fn handle_wall_collision(
             &mut physics::components::Velocity,
             &mut physics::components::Curve,
         ),
-        With<physics::components::BoundingSphere>,
+        With<physics::components::SphereCollider>,
     >,
-    goal_query: Query<&playfield::components::Goal, With<physics::components::BoundingCuboid>>,
+    goal_query: Query<&playfield::components::Goal, With<physics::components::CuboidCollider>>,
 ) {
     for message in messages.read() {
         let (Ok((ball_modifiers, mut ball_transform, mut ball_velocity, mut curve)), Ok(goal)) =

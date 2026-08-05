@@ -40,7 +40,7 @@ fn run_tracking(app: &mut App, ball_z: f32) -> (Entity, Entity) {
         .spawn((
             ball_modifiers.clone(),
             Transform::from_translation(Vec3::Z * ball_z),
-            physics::components::BoundingSphere {
+            physics::components::SphereCollider {
                 radius: ball_modifiers.base_radius,
             },
         ))
@@ -150,7 +150,7 @@ fn setup_wall_collision_case(app: &mut App, case: &WallCollisionHandlerCase) -> 
         .spawn((
             modifiers.clone(),
             Transform::from_translation(case.position),
-            physics::components::BoundingSphere {
+            physics::components::SphereCollider {
                 radius: modifiers.base_radius,
             },
             physics::components::Velocity(case.velocity),
@@ -162,7 +162,7 @@ fn setup_wall_collision_case(app: &mut App, case: &WallCollisionHandlerCase) -> 
 
     let wall_entity = app
         .world_mut()
-        .spawn(physics::components::BoundingCuboid {
+        .spawn(physics::components::CuboidCollider {
             half_extents: Vec3::ONE,
         })
         .id();

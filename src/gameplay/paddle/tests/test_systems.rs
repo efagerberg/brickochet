@@ -14,7 +14,7 @@ fn base_app(cursor_visible: bool) -> App {
 
     app.world_mut().spawn((
         playfield::components::Goal::Enemy,
-        physics::components::BoundingCuboid {
+        physics::components::CuboidCollider {
             half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.5),
         },
         bevy::window::CursorOptions {
@@ -108,7 +108,7 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         .world_mut()
         .spawn((
             paddle::components::Paddle,
-            physics::components::BoundingCuboid {
+            physics::components::CuboidCollider {
                 half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5),
             },
             Transform {
@@ -209,7 +209,7 @@ fn test_apply_paddle_impact_modifiers(case: ApplyPaddleImpactModifierCase) {
         .world_mut()
         .spawn((
             physics::components::Velocity(case.initial_velocity),
-            physics::components::BoundingSphere::default(),
+            physics::components::SphereCollider::default(),
         ))
         .id();
 

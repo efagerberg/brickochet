@@ -13,7 +13,7 @@ pub fn spawn_brick_wall(
     goal_query: Query<(
         &playfield::components::Goal,
         &Transform,
-        &physics::components::BoundingCuboid,
+        &physics::components::CuboidCollider,
     )>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -21,15 +21,15 @@ pub fn spawn_brick_wall(
     brick_assets: ResMut<Assets<brick::assets::BrickAsset>>,
     playfield: Res<playfield::resources::Playfield>,
 ) {
-    let (_, enemy_goal_transform, enemy_goal_bounds) = goal_query
+    let (_, enemy_goal_transform, enemy_goal_collider) = goal_query
         .iter()
         .find(|(goal, _, __)| **goal == playfield::components::Goal::Enemy)
         .expect("Missing enemy goal, cannot spawn brick wall");
 
     // Dimensions of the wall
-    let wall_width = enemy_goal_bounds.half_extents.x * 2.0;
-    let wall_height = enemy_goal_bounds.half_extents.y * 2.0;
-    let wall_depth = enemy_goal_bounds.half_extents.z * 2.0;
+    let wall_width = enemy_goal_collider.half_extents.x * 2.0;
+    let wall_height = enemy_goal_collider.half_extents.y * 2.0;
+    let wall_depth = enemy_goal_collider.half_extents.z * 2.0;
 
     // Brick size (uniform)
     let brick_size = playfield.brick_size;
@@ -115,9 +115,10 @@ fn spawn_brick(
         .spawn((
             Name::new(brick_asset.name),
             brick::components::Brick,
-            physics::components::BoundingCuboid {
+            physics::components::CuboidCollider {
                 half_extents: size * 0.5,
             },
+            physics::components::StaticBody,
             Transform::from_translation(Vec3::new(
                 position.x + size.x * 0.5,
                 position.y + size.y * 0.5,
@@ -186,11 +187,11 @@ const PLAYER_POSITION_OFFSET: f32 = 0.2;
 
 pub fn initialize_ricochet_effect(
     mut ball_query: Query<
-        (&Transform, &physics::components::BoundingSphere),
+        (&Transform, &physics::components::SphereCollider),
         Without<brick::components::Brick>,
     >,
     brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
-    paddle_query: Query<(&Transform, &physics::components::BoundingCuboid), PaddleQueryFilter>,
+    paddle_query: Query<(&Transform, &physics::components::CuboidCollider), PaddleQueryFilter>,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut commands: Commands,
     time: Res<Time>,
@@ -366,7 +367,7 @@ pub fn update_size_effect(
     query: Query<(
         Entity,
         &mut Transform,
-        &mut physics::components::BoundingSphere,
+        &mut physics::components::SphereCollider,
         &brick::components::RicochetSizeEffect,
     )>,
     mut commands: Commands,
