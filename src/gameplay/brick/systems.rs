@@ -92,7 +92,7 @@ fn spawn_brick(
             Mesh3d(meshes.add(Cuboid::new(
                 size.x + border_padding,
                 size.y + border_padding,
-                size.z * 0.05, // thin
+                size.z * 0.01, // thin
             ))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::BLACK,

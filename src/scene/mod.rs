@@ -243,7 +243,7 @@ fn spawn_paddle(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     playfield_half_size: Vec3,
 ) -> Entity {
-    let paddle_half_size = Vec3::new(1.5, 1.0, 0.1);
+    let paddle_half_size = Vec3::new(1.5, 1.0, 0.01);
     let collider = physics::components::CuboidCollider {
         half_extents: paddle_half_size,
     };
