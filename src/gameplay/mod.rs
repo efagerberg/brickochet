@@ -44,9 +44,12 @@ pub fn plugin(app: &mut App) {
             brick::systems::update_size_effect.before(crate::physics::PhysicsSet::DetectCollisions),
             (
                 paddle::systems::apply_paddle_impact_modifiers,
-                playfield::systems::handle_wall_collision,
+                (
+                    paddle::systems::paddle_mouse_control,
+                    playfield::systems::handle_wall_collision,
+                )
+                    .chain(),
                 brick::systems::initialize_ricochet_effect,
-                paddle::systems::paddle_mouse_control,
             )
                 .after(crate::physics::PhysicsSet::DetectCollisions),
         )
