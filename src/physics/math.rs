@@ -8,21 +8,37 @@ pub struct SweepHit {
     /// start of the frame (see `t_hit` below).
     pub t: f32,
     pub normal: Vec3,
+    /// World-space position of contact. Correct even when the box itself
+    /// is moving (see step 3 below) — no further adjustment needed by
+    /// callers.
     pub contact_point: Vec3,
 }
 
-/// Sweeps a sphere along `velocity * dt` and checks whether it hits a static
-/// AABB anywhere along that path, not just at the end position.
+/// Sweeps a sphere along `sphere_velocity * dt` and checks whether it hits
+/// an AABB — which may itself be moving along `aabb_velocity * dt` — at any
+/// point along that relative path, not just at frame-start or frame-end
+/// positions.
 ///
-/// # Strategy: two ideas stacked together
+/// # Strategy: three ideas stacked together
 ///
 /// **1. Minkowski trick, turn "sphere vs box" into "point vs box".**
 /// A sphere touches a box exactly when the sphere's *center* enters a copy
 /// of the box inflated by the sphere's radius in every direction. So we
 /// inflate once up front and then only ever have to reason about a single
-/// moving point vs. a static box for the rest of the function.
+/// moving point vs. a box for the rest of the function.
 ///
-/// **2. Slab method, turn "point vs box" into three 1D interval problems.**
+/// **2. Relative motion, turn "two moving things" into "one thing moving,
+/// one thing still".**
+/// Only *relative* motion determines whether and when two things touch —
+/// this is the same idea as judging whether two trains will collide by
+/// looking at the difference in their speeds, not each one's speed
+/// relative to the ground. Subtracting the box's velocity from the
+/// sphere's gives the sphere's motion *as seen from the box's own rest
+/// frame*, in which the box is stationary by construction. That lets the
+/// rest of the function pretend it's solving the simpler "static box"
+/// problem — because, in this frame, it genuinely is one.
+///
+/// **3. Slab method, turn "point vs box" into three 1D interval problems.**
 /// An AABB is the intersection of three infinite slabs (x in [lo,hi], y in
 /// [lo,hi], z in [lo,hi]). For each axis, solve for the time interval
 /// `[t1, t2]` during which the moving point is inside *that axis's* slab
@@ -31,6 +47,21 @@ pub struct SweepHit {
 /// times and the min of the exit times. Whichever axis contributed the
 /// *final* (latest) entry time is the face that was actually hit, which is
 /// what gives us the collision normal for free.
+///
+/// # Converting back to world space
+///
+/// Everything above is computed in the box's rest frame, where the box
+/// never moves. `t` and `normal` are frame-independent (a fraction of time
+/// and a direction don't change under a change of reference frame), so
+/// they're reported as-is. `contact_point`, however, is a *position* —
+/// computed in the previous step as "where the sphere is, in a frame
+/// where the box stayed put." To report a true world-space position, the
+/// box's own displacement during the hit fraction has to be added back:
+/// `contact_point = relative_contact_point + aabb_velocity * dt * t_hit`.
+/// Skipping this step is subtle to notice — everything still compiles and
+/// mostly looks right — but it silently reports a contact point that
+/// lags behind a moving box's true position at the moment of impact,
+/// worse the faster the box moves.
 ///
 /// # Why the sentinels are +/-infinity, not 0.0/1.0
 ///
@@ -48,7 +79,7 @@ pub struct SweepHit {
 /// incorrectly (or not at all).
 ///
 /// Returns `None` if the sphere's path never touches the box within this
-/// frame's motion (t in [0, 1]).
+/// frame's relative motion (t in [0, 1]).
 pub fn sweep_sphere_aabb(
     sphere_position: Vec3,
     sphere_velocity: Vec3,
@@ -56,15 +87,18 @@ pub fn sweep_sphere_aabb(
     sphere_radius: f32,
     aabb_position: Vec3,
     aabb_half_extents: Vec3,
+    aabb_velocity: Vec3,
 ) -> Option<SweepHit> {
     // --- Step 1: Minkowski trick. Inflate the box, now reason about a point. ---
     let expanded_half = aabb_half_extents + Vec3::splat(sphere_radius);
     let min = aabb_position - expanded_half;
     let max = aabb_position + expanded_half;
 
-    let motion = sphere_velocity * dt;
+    // --- Step 2: relative motion. Reframe so the box is stationary. ---
+    let relative_velocity = sphere_velocity - aabb_velocity;
+    let motion = relative_velocity * dt;
 
-    // --- Step 2: slab method. Intersect three per-axis time intervals. ---
+    // --- Step 3: slab method. Intersect three per-axis time intervals. ---
     // Start as the universal interval; each axis can only shrink it.
     let mut t_enter = f32::NEG_INFINITY;
     let mut t_exit = f32::INFINITY;
@@ -77,10 +111,11 @@ pub fn sweep_sphere_aabb(
         let hi = max[axis];
 
         if d.abs() < f32::EPSILON {
-            // No motion on this axis: the point's position on this axis is
-            // fixed for the whole frame, so it either sits inside this
-            // slab the entire time or never at all. No time interval to
-            // compute, just a pass/fail gate.
+            // No relative motion on this axis: the point's position on
+            // this axis is fixed for the whole frame (in the box's rest
+            // frame), so it either sits inside this slab the entire time
+            // or never at all. No time interval to compute, just a
+            // pass/fail gate.
             if start < lo || start > hi {
                 return None;
             }
@@ -134,10 +169,17 @@ pub fn sweep_sphere_aabb(
     // should drive anything time-dependent about the hit, including the
     // contact point below.
     let t_hit = t_enter.max(0.0);
-    let contact_point = sphere_position + motion * t_hit;
+
+    // Contact point in the box's rest frame...
+    let relative_contact_point = sphere_position + motion * t_hit;
+    // ...converted back to world space by adding the box's own
+    // displacement during the hit fraction (see doc comment above).
+    let contact_point = relative_contact_point + aabb_velocity * dt * t_hit;
 
     // The axis that set the final t_enter is the face we hit; the normal
-    // points backward along that axis relative to the direction of travel.
+    // points backward along that axis relative to the direction of
+    // *relative* travel — still correct in world space, since direction
+    // doesn't change under a frame shift by a constant velocity.
     let mut normal = Vec3::ZERO;
     normal[enter_axis] = -motion[enter_axis].signum();
 

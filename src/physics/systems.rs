@@ -99,22 +99,14 @@ pub fn detect_collisions(
         let mut earliest: Option<(Entity, physics::math::SweepHit)> = None;
 
         for (b_entity, b_transform, b_collider, b_velocity) in cuboids.iter() {
-            // Sweep using motion relative to the cuboid: a static wall has
-            // no Velocity and contributes zero, while a kinematic paddle's
-            // Velocity is subtracted out so the sweep sees the sphere's
-            // motion *as observed from the cuboid*, not the sphere's raw
-            // world-frame velocity. Without this, a fast-moving kinematic
-            // body can move into the sphere's path between frames without
-            // ever registering a hit.
-            let relative_velocity = a_velocity.0 - b_velocity.map(|v| v.0).unwrap_or(Vec3::ZERO);
-
             if let Some(hit) = physics::math::sweep_sphere_aabb(
                 a_transform.translation,
-                relative_velocity,
+                a_velocity.0,
                 time.delta_secs(),
                 a_collider.radius,
                 b_transform.translation,
                 b_collider.half_extents,
+                b_velocity.map(|v| v.0).unwrap_or(Vec3::ZERO),
             ) {
                 let is_earlier = earliest
                     .as_ref()
