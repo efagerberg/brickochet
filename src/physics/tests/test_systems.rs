@@ -399,7 +399,10 @@ fn test_resolve_sphere_aabb_collision_updates_velocity(case: ResolveSphereAabbCo
 
     let sphere_entity = app
         .world_mut()
-        .spawn((physics::components::SphereCollider { radius: 1.0 },))
+        .spawn((
+            physics::components::SphereCollider { radius: 1.0 },
+            physics::components::DynamicBody,
+        ))
         .id();
     if let Some(initial_velocity) = case.initial_velocity {
         app.world_mut()

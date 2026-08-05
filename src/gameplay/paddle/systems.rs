@@ -44,26 +44,27 @@ pub fn paddle_mouse_control(
 
     let delta_secs = time.delta_secs();
 
+    let sensitivity = 0.025;
+    let movement = delta * sensitivity; // desired displacement this frame, same as before
+
+    // Clamp against the goal collider using the *current* position, exactly
+    // as the direct-mutation version did, then back out whatever velocity
+    // reproduces this same (possibly clamped) displacement once
+    // apply_velocity integrates it as `velocity * delta_secs`.
+    let mut target_x = paddle_transform.translation.x + movement.x;
+    // TODO: Inverse this based on player preferences
+    let mut target_y = paddle_transform.translation.y - movement.y;
+
     let enemy_goal = goal_query
         .iter()
         .find(|(goal, _)| **goal == playfield::components::Goal::Enemy);
 
-    let Some((_, collider)) = enemy_goal else {
-        paddle_velocity.0 = Vec3::ZERO;
-        return;
+    if let Some((_, enemy_goal_collider)) = enemy_goal {
+        let x_abs_limit = enemy_goal_collider.half_extents.x - paddle_collider.half_extents.x;
+        let y_abs_limit = enemy_goal_collider.half_extents.y - paddle_collider.half_extents.y;
+        target_x = target_x.clamp(-x_abs_limit, x_abs_limit);
+        target_y = target_y.clamp(-y_abs_limit, y_abs_limit);
     };
-
-    let sensitivity = 0.025;
-    let movement = delta * sensitivity; // desired displacement this frame, same as before
-    let x_abs_limit = collider.half_extents.x - paddle_collider.half_extents.x;
-    let y_abs_limit = collider.half_extents.y - paddle_collider.half_extents.y;
-
-    // Clamp against the goal bounds using the *current* position, exactly
-    // as the direct-mutation version did, then back out whatever velocity
-    // reproduces this same (possibly clamped) displacement once
-    // apply_velocity integrates it as `velocity * delta_secs`.
-    let target_x = (paddle_transform.translation.x + movement.x).clamp(-x_abs_limit, x_abs_limit);
-    let target_y = (paddle_transform.translation.y - movement.y).clamp(-y_abs_limit, y_abs_limit); // invert Y if needed
 
     let clamped_displacement = Vec3::new(
         target_x - paddle_transform.translation.x,

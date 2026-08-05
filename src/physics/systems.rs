@@ -141,7 +141,10 @@ pub fn resolve_sphere_aabb_collision(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         &mut physics::components::Velocity,
-        With<physics::components::SphereCollider>,
+        (
+            With<physics::components::SphereCollider>,
+            With<physics::components::DynamicBody>,
+        ),
     >,
 ) {
     let mut collisions_per_sphere: entity::EntityHashMap<

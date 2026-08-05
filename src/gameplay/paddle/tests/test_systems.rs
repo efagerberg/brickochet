@@ -8,45 +8,40 @@ const SENSITIVITY: f32 = 0.025;
 const PLAYFIELD_HALF: f32 = 5.0;
 const PADDLE_HALF: f32 = 1.0;
 
-fn base_app(cursor_visible: bool) -> App {
+fn base_app(cursor_visible: bool, has_enemy_goal: bool) -> App {
     let mut app = App::new();
     app.add_message::<bevy::input::mouse::MouseMotion>();
 
-    app.world_mut().spawn((
-        playfield::components::Goal::Enemy,
-        physics::components::CuboidCollider {
-            half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.5),
-        },
-        bevy::window::CursorOptions {
-            visible: cursor_visible,
-            ..default()
-        },
-    ));
+    app.world_mut().spawn(bevy::window::CursorOptions {
+        visible: cursor_visible,
+        ..default()
+    });
+    if has_enemy_goal {
+        app.world_mut().spawn((
+            playfield::components::Goal::Enemy,
+            physics::components::CuboidCollider {
+                half_extents: Vec3::new(PLAYFIELD_HALF, PLAYFIELD_HALF, 0.5),
+            },
+        ));
+    }
     app
 }
 
+#[derive(Default)]
 struct PaddleMouseControlCase {
     starting_position: Vec3,
     motion_deltas: Vec<Vec2>,
     cursor_visible: bool,
-    expected_position: Vec3,
-}
-impl Default for PaddleMouseControlCase {
-    fn default() -> Self {
-        PaddleMouseControlCase {
-            starting_position: Vec3::ZERO,
-            motion_deltas: vec![],
-            cursor_visible: false,
-            expected_position: Vec3::ZERO,
-        }
-    }
+    has_enemy_goal: bool,
+    expected_velocity: Vec3,
 }
 
 #[test_case(
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![],
-        expected_position: Vec3::ZERO,
+        has_enemy_goal: true,
+        expected_velocity: Vec3::ZERO,
         ..default()
     }
     ; "no mouse movement"
@@ -55,7 +50,8 @@ impl Default for PaddleMouseControlCase {
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(10.0, 0.0)],
-        expected_position: Vec3::new(10.0 * SENSITIVITY, 0.0, 0.0),
+        has_enemy_goal: true,
+        expected_velocity: Vec3::new(10.0 * SENSITIVITY, 0.0, 0.0),
         ..default()
     }
     ; "positive x movement"
@@ -64,8 +60,9 @@ impl Default for PaddleMouseControlCase {
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(10.0, 0.0)],
+        has_enemy_goal: true,
         cursor_visible: true,
-        expected_position: Vec3::ZERO
+        expected_velocity: Vec3::ZERO
     }
     ; "visible cursor stops movement"
 )]
@@ -73,7 +70,8 @@ impl Default for PaddleMouseControlCase {
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(-10.0, 0.0)],
-        expected_position: Vec3::new(-10.0 * SENSITIVITY, 0.0, 0.0),
+        has_enemy_goal: true,
+        expected_velocity: Vec3::new(-10.0 * SENSITIVITY, 0.0, 0.0),
         ..default()
     }
     ; "negative x movement"
@@ -82,7 +80,8 @@ impl Default for PaddleMouseControlCase {
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(0.0, 10.0)],
-        expected_position: Vec3::new(0.0, -10.0 * SENSITIVITY, 0.0),
+        has_enemy_goal: true,
+        expected_velocity: Vec3::new(0.0, -10.0 * SENSITIVITY, 0.0),
         ..default()
     }
     ; "positive y inverted"
@@ -91,7 +90,8 @@ impl Default for PaddleMouseControlCase {
     PaddleMouseControlCase {
         starting_position: Vec3::ZERO,
         motion_deltas: vec![Vec2::new(10_000.0, 10_000.0)],
-        expected_position: Vec3::new(
+        has_enemy_goal: true,
+        expected_velocity: Vec3::new(
             PLAYFIELD_HALF - PADDLE_HALF,
             -(PLAYFIELD_HALF - PADDLE_HALF),
             0.0,
@@ -100,8 +100,18 @@ impl Default for PaddleMouseControlCase {
     }
     ; "clamps both axes"
 )]
+#[test_case(
+    PaddleMouseControlCase {
+        starting_position: Vec3::ZERO,
+        motion_deltas: vec![Vec2::new(100_000.0, 100_000.0)],
+        has_enemy_goal: false,
+        expected_velocity: Vec3::new(SENSITIVITY * 100_000.0, -SENSITIVITY * 100_000.0, 0.0),
+        ..default()
+    }
+    ; "no clamping when there is no enemy goal"
+)]
 fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
-    let mut app = base_app(case.cursor_visible);
+    let mut app = base_app(case.cursor_visible, case.has_enemy_goal);
     app.add_systems(Update, paddle::systems::paddle_mouse_control);
     let mut time: Time = Time::default();
     time.advance_by(std::time::Duration::from_secs_f32(1.0));
@@ -135,7 +145,7 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         .world()
         .get::<physics::components::Velocity>(paddle_entity)
         .unwrap();
-    assert_eq!(velocity.0, case.expected_position);
+    assert_eq!(velocity.0, case.expected_velocity);
 }
 
 enum PaddleImpactModifierSetupScenario {
