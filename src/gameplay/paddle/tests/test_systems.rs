@@ -121,8 +121,9 @@ fn test_paddle_mouse_control(case: PaddleMouseControlCase) {
         .world_mut()
         .spawn((
             paddle::components::Paddle,
-            physics::components::CuboidCollider {
-                half_extents: Vec3::new(PADDLE_HALF, PADDLE_HALF, 0.5),
+            physics::components::PlaneCollider {
+                normal: Vec3::ZERO,
+                half_extents: Vec2::new(PADDLE_HALF, PADDLE_HALF),
             },
             physics::components::Velocity(Vec3::ZERO),
             Transform {

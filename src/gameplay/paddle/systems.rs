@@ -10,7 +10,7 @@ pub fn paddle_mouse_control(
         (
             &Transform,
             &mut physics::components::Velocity,
-            &physics::components::CuboidCollider,
+            &physics::components::PlaneCollider,
         ),
         With<paddle::components::Paddle>,
     >,

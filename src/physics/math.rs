@@ -1,4 +1,4 @@
-use bevy::math::Vec3;
+use bevy::math::{Vec2, Vec3};
 
 /// Result of a swept sphere-vs-AABB test.
 #[derive(Copy, Clone, Debug, PartialEq, Default)]
@@ -189,6 +189,105 @@ pub fn sweep_sphere_aabb(
     Some(SweepHit {
         t: t_hit,
         normal,
+        contact_point,
+    })
+}
+
+/// Result of a swept sphere-vs-bounded-plane test. A bounded plane is a
+/// flat rectangular patch with a fixed normal and no depth: unlike an
+/// AABB, it has exactly one face, so there's no possibility of a side or
+/// edge hit — the sphere either crosses the (radius-offset) plane within
+/// the rectangle's bounds, or it doesn't hit at all.
+///
+/// # Strategy
+///
+/// Same relative-motion reframing as `sweep_sphere_aabb`: subtract the
+/// plane's velocity from the sphere's so the plane can be treated as
+/// stationary. Then, instead of three per-axis slab intervals, there's
+/// only one meaningful axis — distance along the plane's normal. Solve
+/// for the single time `t` at which that distance crosses ±radius (the
+/// Minkowski-offset plane), then check whether the contact point at that
+/// moment actually falls within the plane's bounded width/height. If it
+/// doesn't, the sphere missed the paddle's edge — no hit, regardless of
+/// what's happening along the normal axis.
+///
+/// Assumes `plane_normal` is a unit vector and that the plane doesn't
+/// rotate during the sweep (a translating, non-rotating panel — a
+/// paddle).
+pub fn sweep_sphere_plane(
+    sphere_position: Vec3,
+    sphere_velocity: Vec3,
+    dt: f32,
+    sphere_radius: f32,
+    plane_position: Vec3,
+    plane_velocity: Vec3,
+    plane_normal: Vec3,
+    plane_half_extents: Vec2, // bounds along the two axes tangent to the normal
+) -> Option<SweepHit> {
+    let relative_velocity = sphere_velocity - plane_velocity;
+    let motion = relative_velocity * dt;
+
+    // Signed distance from the sphere's center to the plane, along the
+    // normal, at the start of the frame.
+    let start_offset = (sphere_position - plane_position).dot(plane_normal);
+    let closing_speed = motion.dot(plane_normal);
+
+    // Which side of the plane the sphere starts on determines which
+    // offset surface (+radius or -radius) it needs to cross.
+    let side = start_offset.signum();
+    let side = if side == 0.0 { 1.0 } else { side }; // exactly on-plane: pick a side arbitrarily
+    let target_offset = side * sphere_radius;
+
+    let t_hit = if closing_speed.abs() < f32::EPSILON {
+        // No relative motion along the normal: either already within
+        // radius of the plane (touching for the whole frame — report an
+        // immediate hit) or never touches at all this frame.
+        if start_offset.abs() <= sphere_radius {
+            0.0
+        } else {
+            return None;
+        }
+    } else {
+        let t = (target_offset - start_offset) / closing_speed;
+        if t < 0.0 {
+            // Only an immediate hit if we're still closing on the plane
+            // (i.e. genuinely penetrating), not if we're embedded but
+            // moving apart after a previous reflection.
+            if start_offset.abs() <= sphere_radius && closing_speed * side < 0.0 {
+                0.0
+            } else {
+                return None;
+            }
+        } else if t > 1.0 {
+            return None; // Doesn't reach the plane within this frame.
+        } else {
+            t
+        }
+    };
+
+    // Where the sphere's center is at the moment of contact, in the
+    // plane's rest frame.
+    let relative_contact_point = sphere_position + motion * t_hit;
+
+    // Bounds check: project onto the plane's local tangent axes and
+    // confirm the contact falls within the paddle's actual width/height,
+    // not just somewhere on the infinite plane.
+    let offset_from_center = relative_contact_point - plane_position;
+    // Assumes plane_normal is axis-aligned (e.g. Vec3::Z) so the tangent
+    // axes are simply the other two world axes. If the paddle can ever
+    // face a non-axis-aligned direction, this needs a proper tangent
+    // basis instead.
+    let tangent_a = offset_from_center.x;
+    let tangent_b = offset_from_center.y;
+    if tangent_a.abs() > plane_half_extents.x || tangent_b.abs() > plane_half_extents.y {
+        return None; // Missed the paddle's actual bounds — flew past its edge.
+    }
+
+    let contact_point = relative_contact_point + plane_velocity * dt * t_hit;
+
+    Some(SweepHit {
+        t: t_hit,
+        normal: plane_normal * side,
         contact_point,
     })
 }

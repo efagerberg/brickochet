@@ -31,8 +31,12 @@ pub fn plugin(app: &mut App) {
             FixedUpdate,
             (
                 systems::add_curve_velocity.in_set(PhysicsSet::ComputeForces),
-                systems::detect_collisions.in_set(PhysicsSet::DetectCollisions),
-                systems::resolve_sphere_aabb_collision.in_set(PhysicsSet::ResolveCollisions),
+                (
+                    systems::detect_sphere_vs_aabb_collisions,
+                    systems::detect_sphere_vs_plane_collisions,
+                )
+                    .in_set(PhysicsSet::DetectCollisions),
+                systems::resolve_collisions.in_set(PhysicsSet::ResolveCollisions),
                 (systems::apply_velocity, systems::apply_curve_spin).in_set(PhysicsSet::Integrate),
             ),
         );

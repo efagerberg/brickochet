@@ -3,7 +3,7 @@ use bevy::prelude::*;
 #[derive(Component, Default)]
 pub struct Curve(pub Vec2);
 
-/// A collider for a  three-dimensional shape with six rectangular faces and all right
+/// A collider for a three-dimensional shape with six rectangular faces and all right
 /// angles. Half extents is used as a convenience for collision detection as it avoids
 /// a division. Ex center ± half_extents, not center ± size/2
 #[derive(Component, Default, Clone, Reflect)]
@@ -14,6 +14,15 @@ pub struct CuboidCollider {
 #[derive(Component, Default, Clone, Reflect)]
 pub struct SphereCollider {
     pub radius: f32,
+}
+
+/// A collider for a bounded rectangular plane shape with one face. Half extents is used
+/// as a convenience for collision detection as it avoids a division.
+/// Ex center ± half_extents, not center ± size/2
+#[derive(Component, Clone, Reflect)]
+pub struct PlaneCollider {
+    pub half_extents: Vec2,
+    pub normal: Vec3,
 }
 
 #[derive(Component, Reflect)]

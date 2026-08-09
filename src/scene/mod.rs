@@ -104,7 +104,7 @@ fn spawn_playfield(
     let playfield = gameplay::playfield::resources::Playfield {
         ball_distance_near_color: LinearRgba::new(0.25, 0.0, 0.0, 1.0),
         ball_distance_far_color: LinearRgba::new(0.0, 0.125, 0.125, 1.0),
-        brick_size: Vec3::new(4.0, 2.0, 0.25),
+        brick_size: Vec2::new(4.0, 2.0),
     };
     commands.insert_resource(playfield.clone());
     playfield
@@ -243,24 +243,21 @@ fn spawn_paddle(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     playfield_half_size: Vec3,
 ) -> Entity {
-    let paddle_half_size = Vec3::new(1.5, 1.0, 0.01);
-    let collider = physics::components::CuboidCollider {
+    let paddle_half_size = Vec2::new(1.5, 1.0);
+    let collider = physics::components::PlaneCollider {
         half_extents: paddle_half_size,
+        normal: -Vec3::Z,
     };
     let healthy_color = LinearRgba::rgb(0.0, 0.2, 0.1);
     let critical_color = LinearRgba::rgb(0.5, 0.2, 0.1);
     let paddle_decal_thickness = 0.05;
     let paddle_decal_geometry = mesh_generation::Geometry::default()
         .merge(
-            &mesh_generation::outline_geometry(paddle_half_size.truncate(), paddle_decal_thickness),
+            &mesh_generation::outline_geometry(paddle_half_size, paddle_decal_thickness),
             Mat4::IDENTITY,
         )
         .merge(
-            &mesh_generation::reticle_geometry(
-                paddle_half_size.truncate(),
-                paddle_decal_thickness,
-                0.5,
-            ),
+            &mesh_generation::reticle_geometry(paddle_half_size, paddle_decal_thickness, 0.5),
             Mat4::IDENTITY,
         )
         .merge(
@@ -298,8 +295,8 @@ fn spawn_paddle(
             children![(
                 Mesh3d(meshes.add(Plane3d::new(
                     // Point towards camera view so player can see it
-                    Vec3::new(0.0, 0.0, 1.0),
-                    collider.half_extents.truncate(),
+                    -collider.normal,
+                    collider.half_extents,
                 ))),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     base_color: Color::from(LinearRgba::new(0.0, 0.0, 0.0, 0.85)),

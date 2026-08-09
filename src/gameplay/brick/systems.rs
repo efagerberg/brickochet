@@ -58,7 +58,7 @@ pub fn spawn_brick_wall(
         let pos = Vec3::new(
             enemy_goal_transform.translation.x - total_width * 0.5 + x as f32 * brick_size.x,
             enemy_goal_transform.translation.y - total_height * 0.5 + y as f32 * brick_size.y,
-            enemy_goal_transform.translation.z + wall_depth + brick_size.z,
+            enemy_goal_transform.translation.z + wall_depth,
         );
 
         let brick_asset = brick_handles[*asset_index];
@@ -80,26 +80,16 @@ fn spawn_brick(
     materials: &mut ResMut<Assets<StandardMaterial>>,
     asset_server: &Res<AssetServer>,
     position: Vec3,
-    size: Vec3,
+    size: Vec2,
     brick_asset: brick::assets::BrickAsset,
 ) {
     // Outer black border (slightly larger)
     let border_padding = 0.25;
 
-    let border = commands
-        .spawn((
-            Name::new("Brick Border"),
-            Mesh3d(meshes.add(Cuboid::new(
-                size.x + border_padding,
-                size.y + border_padding,
-                size.z * 0.01, // thin
-            ))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::BLACK,
-                ..default()
-            })),
-        ))
-        .id();
+    let collider = physics::components::PlaneCollider {
+        normal: Vec3::Z,
+        half_extents: Vec2::new(size.x * 0.5, size.y * 0.5),
+    };
 
     let healthy_color = LinearRgba::rgb(0.0, 1.0, 0.0);
     let critical_color = LinearRgba::rgb(1.0, 0.0, 0.0);
@@ -110,38 +100,26 @@ fn spawn_brick(
             .map(|h| (h, sfx.volume))
     });
 
-    // Main colored brick
-    let main = commands
+    let brick_entity = commands
         .spawn((
             Name::new(brick_asset.name),
             brick::components::Brick,
-            physics::components::CuboidCollider {
-                half_extents: size * 0.5,
-            },
+            collider.clone(),
             physics::components::StaticBody,
             Transform::from_translation(Vec3::new(
-                position.x + size.x * 0.5,
-                position.y + size.y * 0.5,
+                position.x + collider.half_extents.x,
+                position.y + collider.half_extents.y,
                 position.z,
             )),
             GlobalTransform::default(),
-            Mesh3d(meshes.add(Cuboid::new(
-                size.x - border_padding,
-                size.y - border_padding,
-                size.z,
+            Mesh3d(meshes.add(Plane3d::new(
+                collider.normal,
+                collider.half_extents - border_padding,
             ))),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::from(healthy_color),
                 ..default()
             })),
-            children![(
-                Mesh3d(meshes.add(Rectangle::new(
-                    size.x - border_padding,
-                    size.y - border_padding
-                ))),
-                Transform::from_xyz(0.0, 0.0, size.z / 2.0 + 0.01),
-                GlobalTransform::default()
-            )],
             health::components::Health {
                 max: brick_asset.health,
                 current: brick_asset.health,
@@ -161,21 +139,19 @@ fn spawn_brick(
 
     if let Some((handle, volume)) = sfx_with_handle.clone() {
         commands
-            .entity(main)
+            .entity(brick_entity)
             .insert(audio::components::CollisionSFX { handle, volume });
     }
     if let Some(definition) = brick_asset.ricochet_effect {
         commands
-            .entity(main)
+            .entity(brick_entity)
             .insert(brick::components::RicochetEffectConfig { definition });
     }
-    if let Some(border_effect) = &brick_asset.light_fx {
+    if let Some(light_fx) = &brick_asset.light_fx {
         commands
-            .entity(main)
-            .insert(brick::components::LightFX(border_effect.clone()));
+            .entity(brick_entity)
+            .insert(brick::components::LightFX(light_fx.clone()));
     }
-
-    commands.entity(main).add_child(border);
 }
 
 type PaddleQueryFilter = (
@@ -191,7 +167,7 @@ pub fn initialize_ricochet_effect(
         Without<brick::components::Brick>,
     >,
     brick_query: Query<&brick::components::RicochetEffectConfig, With<brick::components::Brick>>,
-    paddle_query: Query<(&Transform, &physics::components::CuboidCollider), PaddleQueryFilter>,
+    paddle_query: Query<&Transform, PaddleQueryFilter>,
     mut collision_messages: MessageReader<physics::messages::CollisionMessage>,
     mut commands: Commands,
     time: Res<Time>,
@@ -211,7 +187,7 @@ pub fn initialize_ricochet_effect(
                 }
                 brick::assets::EffectDriver::DistanceToPlayer => {
                     let start = ball_transform.translation.z;
-                    let (paddle_transform, bounding_cuboid) = paddle_query
+                    let paddle_transform = paddle_query
                         .iter()
                         .next()
                         .expect("No player, cannot use DistanceToPlayer driver");
@@ -221,8 +197,7 @@ pub fn initialize_ricochet_effect(
                     // Since balls can move fast the contact offset should include
                     // additional buffer since in a tick the ball position could already
                     // be reflected by the paddle.
-                    let contact_offset =
-                        bounding_cuboid.half_extents.z + ball_radius + PLAYER_POSITION_OFFSET;
+                    let contact_offset = ball_radius + PLAYER_POSITION_OFFSET;
                     let raw_end = paddle_transform.translation.z;
                     let direction = (raw_end - start).signum();
                     let end = raw_end - direction * contact_offset;

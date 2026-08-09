@@ -76,7 +76,7 @@ pub fn add_curve_velocity(
     }
 }
 
-pub fn detect_collisions(
+pub fn detect_sphere_vs_aabb_collisions(
     spheres: Query<
         (
             Entity,
@@ -129,7 +129,61 @@ pub fn detect_collisions(
     }
 }
 
-pub fn resolve_sphere_aabb_collision(
+pub fn detect_sphere_vs_plane_collisions(
+    spheres: Query<
+        (
+            Entity,
+            &Transform,
+            &physics::components::SphereCollider,
+            &physics::components::Velocity,
+        ),
+        With<physics::components::DynamicBody>,
+    >,
+    planes: Query<(
+        Entity,
+        &Transform,
+        &physics::components::PlaneCollider,
+        Option<&physics::components::Velocity>,
+    )>,
+    time: Res<Time>,
+    mut messages: MessageWriter<physics::messages::CollisionMessage>,
+) {
+    for (a_entity, a_transform, a_collider, a_velocity) in spheres.iter() {
+        let mut earliest: Option<(Entity, physics::math::SweepHit)> = None;
+
+        for (b_entity, b_transform, b_collider, b_velocity) in planes.iter() {
+            if let Some(hit) = physics::math::sweep_sphere_plane(
+                a_transform.translation,
+                a_velocity.0,
+                time.delta_secs(),
+                a_collider.radius,
+                b_transform.translation,
+                b_velocity.map(|v| v.0).unwrap_or(Vec3::ZERO),
+                b_collider.normal,
+                b_collider.half_extents,
+            ) {
+                let is_earlier = earliest
+                    .as_ref()
+                    .map(|(_, prev)| hit.t < prev.t)
+                    .unwrap_or(true);
+                if is_earlier {
+                    earliest = Some((b_entity, hit));
+                }
+            }
+        }
+
+        // Take earliest collision event
+        if let Some((b_entity, hit)) = earliest {
+            messages.write(physics::messages::CollisionMessage {
+                a: a_entity,
+                b: b_entity,
+                hit,
+            });
+        }
+    }
+}
+
+pub fn resolve_collisions(
     mut messages: MessageReader<physics::messages::CollisionMessage>,
     mut sphere_query: Query<
         &mut physics::components::Velocity,

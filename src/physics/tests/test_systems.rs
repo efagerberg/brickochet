@@ -310,7 +310,7 @@ fn test_detect_collisions(case: DetectCollisionCase) {
     let mut time: Time = Time::default();
     time.advance_by(std::time::Duration::from_secs_f32(case.delta_secs));
     app.insert_resource(time);
-    app.add_systems(Update, physics::systems::detect_collisions);
+    app.add_systems(Update, physics::systems::detect_sphere_vs_aabb_collisions);
     app.update();
 
     let collision_messages = app
@@ -432,7 +432,7 @@ fn test_resolve_sphere_aabb_collision_updates_velocity(case: ResolveSphereAabbCo
         messages.write(collision_message);
     }
 
-    app.add_systems(Update, physics::systems::resolve_sphere_aabb_collision);
+    app.add_systems(Update, physics::systems::resolve_collisions);
     app.update();
 
     if let Some(expected_velocity) = case.expected_velocity {
